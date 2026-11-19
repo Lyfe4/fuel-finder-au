@@ -8,8 +8,11 @@
   # The team is on Legacy Free, where a build costs build minutes (300 a
   # month, shared by all 16 of the team's sites) rather than credits; a
   # docs-only push should spend neither. Exit 0 = skip; any change outside
-  # docs/ and Markdown (or a first deploy, with nothing to diff) builds.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)docs/' ':(exclude)*.md'"
+  # docs/ and Markdown builds. So does a build with nothing to compare: a
+  # build without a cache gets CACHED_COMMIT_REF = COMMIT_REF (Netlify's
+  # docs), which diffs as "no change" and would skip every build from then on,
+  # since a skipped build saves no cache. Round 20's rename did exactly that.
+  ignore = "test -n \"$CACHED_COMMIT_REF\" && test \"$CACHED_COMMIT_REF\" != \"$COMMIT_REF\" && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)docs/' ':(exclude)*.md'"
 
 [build.environment]
   # Matches .nvmrc, so the deploy and CI use the same major.
