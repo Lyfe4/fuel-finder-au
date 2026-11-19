@@ -3553,12 +3553,20 @@ chose `fuel-finder-au` for the repository (`Lyfe4/fuel-finder-au`), the
 Netlify site (`fuel-finder-au.netlify.app`) and the package. The product
 name stays "Fuel Finder".
 
-**The old address stops working, accepted.** A renamed Netlify subdomain
-does not redirect: `nsw-fuel-finder.netlify.app` answers Netlify's "Not
-Found" from the rename on, so shared links and search results to it break.
-qld-plan.md 6.2 had recommended a custom domain instead, for its redirect;
-the owner chose the rename. GitHub does redirect the old repository's web,
-git and API addresses, until a repository of the old name is created.
+**The old address is held, and redirects.** A renamed Netlify subdomain
+does not redirect, and its old name is free for any Netlify user to claim:
+someone else's site could then answer every old link, search result and
+registration that names it. The owner first accepted the old links
+breaking (qld-plan.md 6.2 had recommended a custom domain instead), then
+chose to hold the name. A second site, `nsw-fuel-finder` (id
+`a529d89d-…`, team lyfe4, no repository, build or functions), serves only
+`_redirects`: `/*  https://fuel-finder-au.netlify.app/:splat  301!`, query
+strings passed on. A script watched for the rename and claimed the name at
+once: the site was renamed at 04:16:31 UTC on 19 November, the name
+claimed at 04:16:35, the redirect live at 04:16:51. Each redirect is a
+few hundred bytes at the edge and no function run. GitHub redirects the old
+repository's web, git and API addresses by itself, until a repository of
+the old name is created.
 
 **What changed:** the package name; the README's links; the default address
 in `vite.config.ts` (used only when Netlify's `URL` is not set, so locally
