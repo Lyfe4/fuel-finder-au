@@ -13,6 +13,11 @@ updates:
       # typescript-eslint's peer range lags TypeScript majors.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # 4.18 changed import-x/order's ordering of ../ and ./ in one group
+      # (65 new errors, unannounced); pinned at 4.17.1 (docs/decisions.md,
+      # round 19). Lift when a later version orders them as before.
+      - dependency-name: 'eslint-plugin-import-x'
+        versions: ['4.18.x']
 
     groups:
       dev-dependencies:
