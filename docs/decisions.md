@@ -4145,6 +4145,19 @@ the switch is on but the published deploy lacks `QLD_PUBLIC` (round 21).
   pages.
 - **Phase 2, Queensland history** from data.qld.gov.au (docs/qld-plan.md 5).
   A custom domain stays optional (6.2); the rename itself is done (round 20).
+- **jsdom 31, ignored for now** (after round 21, 19 November): Dependabot's
+  pull request #33 (jsdom 30.1.3 to 31.0.1) failed 10 unit tests, all one
+  kind: buttons and links whose accessible names include `VisuallyHidden`
+  text ("Favourite, Ampol Foodary Erina", "Remove, Closed Servo", "Price
+  history, Ampol Foodary Erina") were no longer found by name, while its
+  deploy preview's real-browser checks passed. Closed, and
+  `.github/dependabot.yml` ignores `jsdom` 31.x (32 and later still
+  offered). **To do:** find out how jsdom 31 computes accessible names for
+  `VisuallyHidden` text (most likely it now treats the clipped text as
+  hidden); confirm the real-browser names are right (`check:a11y` and
+  `check:browser` already pass, and a screen reader spot check on one card
+  would settle it); then fix the test setup (or `VisuallyHidden`, if a
+  browser agrees with jsdom), upgrade, and remove the ignore.
 - **Lift the import-x pin** when a version accepts minimatch 11 without
   round 19's ordering change; that also ends the dismissed minimatch alert
   (round 20). Dependabot still offers 4.19 and later.
