@@ -3730,7 +3730,10 @@ Kept: the published deploy, the three newest other production deploys
 fails, nothing is deleted). It refuses any site but `fuel-finder-au` and
 names the redirect site's id to refuse it outright (checked). Part of the
 end-of-round routine in the README. The first run's list (22 to delete, 5
-kept) went to the owner for approval.
+kept) went to the owner for approval; after the merge it was run again
+(25, with this round's preview and two production deploys the merge and
+the hook proof had pushed out of the three kept), and the owner's
+approval covered the final list (below).
 
 ### `/api/status` pages when Queensland is meant on but cannot be (A4)
 
@@ -3836,6 +3839,34 @@ dismissed dev-only minimatch alert (round 20), so it stays out of CI.
 | `pointerenter`/`pointerleave`          | `pointerType` "mouse" for a mouse; a touch tap gives "touch" (ignored for hover) and then a click                   |
 | `hidden` attribute                     | `display: none` unless CSS sets `display`; `.tip` sets none, so `hidden` hides it and removes it from the a11y tree |
 | Absolutely positioned `<span>`         | Blockified, so it lays out as a block; inherits `white-space: nowrap` from the line, hence `white-space: normal`    |
+
+### Verified after the merge
+
+Pull request #37, squash-merged as `38632da` at 06:16:51 UTC on 19
+November (outside the jobs' minutes); production published it at
+06:17:23.
+
+- **In CI, on its final commit:** typecheck, lint, format, the production
+  audit, 1,072 tests, build and budgets; the browser checks on deploy
+  preview 37 passed (2 min 16 s).
+- **`/api/status`:** 200, healthy, `deploy: { context: "production",
+published: true }`, Queensland public, no problems.
+- **A3:** a 10 km search at Coolangatta QLD 4225: 25 stations, 12 of them
+  Queensland's, three notices, and no move today on any Queensland station
+  (yesterday, 18 November, was a consumer day). A Queensland station's
+  history: no days and no sources, as expected on 19 November (only
+  finished days are folded in; the first, the 19th, appears tomorrow).
+- **A8:** an NSW station's history (972) says "2026-07-23 to 2026-09-30:
+  adapted from NSW FuelCheck price history … CC BY-SA 4.0. 2026-10-23 to
+  2026-11-18: from our own snapshots … used under its terms."
+- **`pnpm check:browser`** against production: 73 of 73, the ⓘ's four
+  among them (a 41 × 46 px target; a tap opens it and nothing moves; a tap
+  elsewhere closes it). **`pnpm check:a11y`:** 50 of 50.
+- **A2:** `pnpm deploys:prune` after the merge listed 30 live deploys, 25 to
+  delete and 5 kept; the owner had approved deleting the final list once
+  shown. All 25 deleted (`--delete`, typed `delete 25`), the script's
+  re-list confirming none left; a deleted deploy's address then answered
+  404, the `nsw-fuel-finder` redirect site still 301, production 200.
 
 ### Accepted this round
 
@@ -4005,9 +4036,10 @@ the switch is on but the published deploy lacks `QLD_PUBLIC` (round 21).
   them. **Round 21 found 27 live again** (19 November, 12 of them
   previews): about 39 minutes. Each round and each Dependabot pull request
   adds deploys, so pruning is now the end-of-round routine
-  (`pnpm deploys:prune`, README): after it, about 5 remain (the published
-  deploy, three for a rollback, open pull requests' previews), so about
-  3.5 hours. Netlify deletes deploys after 30 days on this plan (not
+  (`pnpm deploys:prune`, README). After round 21's prune, **5 remain**
+  (19 November, about 06:20 UTC: the published `38632da`, `95fffa7`, `1d7b540`
+  and `15e29d4` for a rollback, and open pull request #33's preview), so
+  about 3.5 hours. Netlify deletes deploys after 30 days on this plan (not
   adjustable). Netlify's own bot protection met paced
   bursts at about 600 a minute from one address (round 10), which may stop
   it sooner, and is not ours to rely on. The 50% usage email is the
