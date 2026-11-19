@@ -3638,6 +3638,30 @@ the first build under the new name.
 - Queensland's first hour on round 19's schedule (03:07 to 04:07 UTC): 6
   runs, 0 failures, 6 calls, no retries.
 
+### minimatch alert dismissed as tolerable risk
+
+Dependabot alert 1 (GHSA-g3hv-75wg-m249, CVE-2026-118764, moderate):
+minimatch 7.0.0 to 11.0.0 can be made to use excessive CPU and memory by
+an attacker-supplied glob pattern; fixed in 11.0.1. We had 10.2.6, through
+typescript-eslint 8.72 and `eslint-plugin-import-x` 4.17.1.
+
+- **Why it could not simply be fixed:** an override to 11 for every copy
+  breaks ESLint, because import-x 4.17.1 imports `makeRe`, which 11 removed.
+  The first import-x that accepts 11 is 4.18.0, the version with the
+  ordering change round 19 pinned away from. Overriding only
+  typescript-eslint's copy works, but leaves 10.2.6 in the lockfile, so the
+  alert stays.
+- **Why the risk is tolerable:** development only, never in the bundle or
+  the functions; the only patterns it ever matches come from our own lint
+  configuration, run on our own machines and CI, never from a visitor.
+- **Decision (owner):** dismissed on GitHub as "tolerable risk" with that
+  reason. No override added.
+- **Revisit** when import-x releases a version that accepts minimatch 11
+  without round 19's ordering change (it passes `pnpm lint` unchanged):
+  lift the pin as round 19 says, and check that no minimatch below 11.0.1
+  is left (`pnpm why minimatch`). Dependabot ignores only `4.18.x`, so it
+  still offers 4.19 and later, in the weekly development group.
+
 ## 2026-10-25: Baseline (updated 19 November, round 20)
 
 The project as of round 20 (renamed `fuel-finder-au`; Queensland public
@@ -3716,9 +3740,9 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   pushes, no bypass), squash
   merges, Dependabot alerts and updates, private vulnerability reporting,
   secret scanning with push protection, actions pinned to commits,
-  `minimumReleaseAge` a day. One open alert at the baseline: minimatch
-  below 11.0.1 (moderate, development only, opened 19 November), fixed in
-  its own pull request after round 20.
+  `minimumReleaseAge` a day. No open alerts at the baseline; one dismissed
+  as tolerable risk (minimatch 10.2.6, development only; round 20, until
+  the import-x pin is lifted).
 - **Where it lives** (round 20): `Lyfe4/fuel-finder-au` and
   `https://fuel-finder-au.netlify.app`. The old `nsw-fuel-finder` name is
   held by a second site in the team that only answers a 301 to the same
@@ -3868,6 +3892,9 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   pages.
 - **Phase 2, Queensland history** from data.qld.gov.au (docs/qld-plan.md 5).
   A custom domain stays optional (6.2); the rename itself is done (round 20).
+- **Lift the import-x pin** when a version accepts minimatch 11 without
+  round 19's ordering change; that also ends the dismissed minimatch alert
+  (round 20). Dependabot still offers 4.19 and later.
 - **Keep the old name's site** (`nsw-fuel-finder`, round 20): never delete
   it, and leave it out of old-deploy clean-ups. Its files are in round 20
   above (one `_redirects` rule and a one-line page); no repository, build
