@@ -21,9 +21,10 @@
 
   # FUEL_API_KEY and FUEL_API_SECRET are deliberately NOT here. They are set
   # in the Netlify UI (Site configuration > Environment variables), scoped to
-  # Functions, so they never reach the build or the browser bundle. The same
-  # for QLD_FPD_TOKEN (Queensland, round 15), production context only, and
-  # QLD_PUBLIC, which stays unset until publisher approval is confirmed.
+  # Functions, so they never reach the browser bundle. The same for
+  # QLD_FPD_TOKEN (Queensland, round 15) and QLD_PUBLIC ("true" since round
+  # 18, when Queensland went public), both in the production context only,
+  # never deploy previews. Turning Queensland off: README, Maintenance.
 
 # No [functions] node_bundler setting: Netlify always bundles v2 functions
 # (the Request -> Response kind used here) with NFT and ignores it. NFT copies

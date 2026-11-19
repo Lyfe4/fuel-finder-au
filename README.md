@@ -186,7 +186,9 @@ minutes.
   change within 30 minutes. NSW's snapshot adds up to 30 more; Queensland's
   up to 10, and a Queensland snapshot over 25 minutes old is left out
   rather than shown (its stations then go missing, with a notice saying
-  so). A price untouched for 14 days or more is flagged.
+  so). A failed Queensland run is not retried, so two in a row leave it out
+  for a few minutes until the next one works. A price untouched for 14 days
+  or more is flagged.
 - **"Today" is against our own records.** A price's move today compares it
   with the last price our snapshot saw yesterday (Sydney's day for NSW,
   Brisbane's for Queensland), so a change made and undone between two

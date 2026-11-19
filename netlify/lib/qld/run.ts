@@ -29,6 +29,25 @@ export interface QldCalls {
 }
 export type QldRunSummary = RunSummary<QldBuildStats, QldCalls>;
 
+/**
+ * The job's answer to Netlify: always 200, failed or not (round 18). A 5xx
+ * would make Netlify run it again seconds later, as the NSW job still does
+ * for a blip (worthRetrying). Queensland's blips (timeouts, empty bodies)
+ * came at about one run in five, mostly on the hour, and the retries added
+ * about 740 calls in November's first 18 days. The next run is 10 minutes
+ * away and a snapshot over 25 minutes old is not served, so a failure is
+ * left to it. The cost: two failures in a row hide Queensland from about 25
+ * minutes after the last good run until the next one succeeds. The outcome
+ * is still in the body, the log and `qld/meta/last-run`; a refused token
+ * still stops the job (the guard in runQldSnapshot), whatever this returns.
+ */
+export function qldRunResponse(summary: { ok: boolean }): Response {
+  return new Response(JSON.stringify(summary), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 /** After a failed refresh of the reference data, how long before the next try. */
 export const REFERENCE_RETRY_MS = 60 * 60_000;
 
