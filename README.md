@@ -272,25 +272,42 @@ against `pnpm serve:headers`, a preview or production.
   (never a preview or an older deploy's permalink), and the kill switch in
   Blobs is on (`config/qld-enabled`, off when missing). And a Queensland
   snapshot more than 25 minutes old is never served, whatever they say.
-  - **On** (phase 1c, only with publisher approval in writing): set
-    `QLD_PUBLIC=true` for production first, then merge the 1c pull request
-    (its deploy picks the variable up), then run `pnpm qld:switch on` with a
-    short-lived token, as for `auth:reset`, and type `on`.
-  - **Off, at once:** `pnpm qld:switch off`, type `off`. Every deploy stops
-    serving Queensland within about two minutes (15 s in each warm API
-    instance, then the CDN's minute or two), with no redeploy. Netlify
-    deletes deploys after 30 days on this plan; until then the switch is
-    what covers the older ones.
-  - **If the licence ends** (clause 4.6: stop using the data): switch off,
-    then remove `QLD_FPD_TOKEN` and redeploy, so the job stops calling. Ask
-    before deleting what is stored under `qld/` and the `qld-` history files.
+  - **On since 19 November 2026** (round 18, as a data publisher):
+    `QLD_PUBLIC=true` in production only, the 1c deploy (`2c98204`), then
+    `pnpm qld:switch on` at 02:54 UTC.
+  - **Off, in this order.** Each step is a stronger, slower lock than the
+    one before; the first alone stops publication.
+    1. **The kill switch, at once:**
+       `NETLIFY_SITE_ID=... NETLIFY_AUTH_TOKEN=... pnpm qld:switch off`,
+       type `off`. Every deploy, old ones included, stops serving Queensland
+       within about two minutes (15 s in each warm API instance, then the
+       CDN's minute or two), with no redeploy. `/api/status` then shows
+       Queensland `public: false`, and its problems stop paging. Check:
+       a search at Coolangatta lists NSW stations only.
+    2. **`QLD_PUBLIC`:** Netlify > Site configuration > Environment
+       variables > `QLD_PUBLIC` > delete it (or empty its Production value).
+       It only takes effect in deploys built afterwards (step 3's), and then
+       a mistaken `qld:switch on` can no longer serve anything.
+    3. **Stop the job:** delete `QLD_FPD_TOKEN` the same way, then trigger a
+       production deploy (Deploys > Trigger deploy > Deploy site; not on :00
+       or :30). From that deploy the job finds no token and makes no call
+       (`not_configured`). Even before it, a stopped job is a backstop: a
+       Queensland snapshot over 25 minutes old is never served.
+    - Then, if it is for good, a pull request reverting the static copy
+      (masthead, footer, title and descriptions, privacy note, README), which
+      the switch cannot change.
+    - **If the licence ends** (clause 4.6: stop using the data): all three
+      steps the same day. Ask before deleting what is stored under `qld/`
+      and the `qld-` history files.
 - **If `check:browser` says Netlify's badge is back**, the policy is blocking
   it: decide whether to allow it again (docs/decisions.md, round 9).
 - **UptimeRobot** checks
   [`/api/status`](https://nsw-fuel-finder.netlify.app/api/status) every 15
   minutes and emails the owner when it is not 200: the site is down, or the
   status is a 503 (a stalled or failing snapshot job, the lockout guard
-  stopped, or more than 2,000 API.NSW calls this month). Each check is a
+  stopped, or more than 2,000 API.NSW calls this month; and, while
+  Queensland is served, the same for its job, site details over 24 hours
+  old, or more than 6,000 QLD calls this month). Each check is a
   function run (about 2,900 a month), so not more often. When an alert
   arrives, open `/api/status`: its `problems` say which.
 - **Keep watching the quota** on the API.NSW dashboard (about 1,500 calls a

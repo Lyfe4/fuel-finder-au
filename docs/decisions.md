@@ -3432,14 +3432,68 @@ privacy note too, so visitors know what would be shared: nothing about them.
 | Netlify CDN on deploy              | A deploy purges the cache, so no answer cached with Queensland off is served after the switch-on deploy   |
 | `context.deploy.published`         | Only the published production deploy serves Queensland (round 16); previews never                         |
 
-## 2026-10-25: Baseline (updated 4 November, round 17)
+### Verified after the merge
 
-The project as of round 17 (phone UX; first written for round 10's
-`d6dc135`, updated for rounds 11 to 16). Future work
+In order, each step only after the one before it was checked.
+
+- **The publisher token.** The owner's first redeploy did not happen (no
+  production deploy since 4 November in Netlify's list), so runs up to
+  02:30 UTC still had the old consumer token, which still worked. The
+  second, `6dbd720`, was published at 02:37:49 UTC; the 02:40:22 run, the
+  first with the new token, was ok with one prices call, 1,779 stations and
+  6,890 prices, as before. The token was never printed: its presence was
+  checked by comparing the masked value's last characters with `.env`. The
+  site-details calls had not yet run on it (next due about 22 hours after
+  the last refresh, 13:50 UTC on 18 November).
+- **`QLD_PUBLIC`**, added by the owner: exactly `true` in production, empty
+  in every other context, not secret. Netlify's locked default scopes
+  (builds, functions, post-processing, runtime) are wider than planned and
+  harmless: only the `api` function reads it, and Vite exposes only
+  `VITE_` variables.
+- **Pull request #29**, squash-merged as `2c98204` at 02:51:46 UTC;
+  production published it at 02:52:16, still serving no Queensland (the
+  switch was off). Its preview, before and after the switch, served none
+  either: a 25 km search at Coolangatta 22 NSW stations, "brisb" only
+  Brisbane Grove NSW, a Queensland history 404.
+- **`pnpm qld:switch on`**, with the owner's go-ahead, at 02:54:20 UTC
+  (the CLI's login token, at the owner's choice); the record read back on.
+  About 25 seconds later `/api/status` showed Queensland `public: true`
+  and healthy, and the Coolangatta search 78 stations, 56 of them
+  Queensland's, with three notices.
+- **Searches:** Tweed Heads NSW 2485 and Coolangatta QLD 4225 at 10 km, both
+  states merged and sorted by price (205.5 NSW and 205.5 Qld first), both
+  sources fresh, three notices; "Coolangatta" alone asks which; Brisbane
+  City QLD 4000 (45 stations) and postcode 4000 (diesel) work; 2250 and
+  Parramatta are NSW only, with no notices. On the page: "· Qld" rows,
+  "as of 1:30 pm (NSW) and 12:50 pm (Qld)", and the notices under the list.
+- **`pnpm check:browser`** 69 of 69 and **`pnpm check:a11y`** 50 of 50
+  against production.
+- **PageSpeed Insights**, the Tweed Heads results page: mobile 99, desktop
+  99, CLS 0, and 100 for accessibility, best practices and SEO (round 17's
+  100 and 100 were for a page with no Queensland stations).
+
+### Found: Queensland runs fail more often than planned
+
+The QLD call record for November said 3,408 runs (and as many price calls)
+by 02:55 UTC on 19 November, where the schedule makes about 2,670: some 740
+are Netlify's retries after a failed run. The last day of logs had 13
+failures in 46 runs (7 `bad_response`, an empty body; 6 `timeout`), most
+at :00 or :30, when the Aggregator is probably busiest. At that rate a
+month is about 5,500 calls, near the 6,000 at which `/api/status` pages the
+owner, now that Queensland is public. Prices stayed fresh (a retry
+succeeds, and the 25-minute rule covers the rest). Suggested, not built: run
+the job off the hour (`3-59/10`), and recount after a week. In the
+Baseline's open items.
+
+## 2026-10-25: Baseline (updated 19 November, round 18)
+
+The project as of round 18 (Queensland public; first written for round 10's
+`d6dc135`, updated for rounds 11 to 17). Future work
 starts from here; this entry is the summary, and the rounds above have the
 reasons.
 
-**What it does.** Live fuel prices for NSW and the ACT, cheapest first, for
+**What it does.** Live fuel prices for NSW, the ACT and Queensland (since 19
+November 2026, round 18; merged by price at the border), cheapest first, for
 a suburb, a postcode or the visitor's rounded location, at 2, 5, 10 or 25 km.
 A list and a map (MapLibre, OpenFreeMap tiles, loaded only when shown), side
 by side on wide screens, a List/Map switch on phones. Without a GPU the wide
@@ -3452,8 +3506,9 @@ not. A one-line summary
 (cheapest, average, what the difference is worth on 50 L), sort by price or
 distance, brand and price-age filters, today's move per station, directions
 in the phone's maps app, the nearest stations up to 100 km when nothing is in
-range. Favourites on the device. Four months of daily history per station
-(FuelCheck's published files joined to our own snapshots), as a chart with a
+range. Favourites on the device. Four months of daily history per NSW
+station (FuelCheck's published files joined to our own snapshots), and
+Queensland's from 30 October 2026 (our own), as a chart with a
 keyboard slider and a table. Light by default, dark, or "Match device"
 (round 17). All state in the URL.
 
@@ -3472,10 +3527,12 @@ capitals kept. `docs/design-system.md` is the source of truth for the look.
 minutes (about 1,500 API.NSW calls a month against 2,500) into Netlify
 Blobs, and folds a slice of history each run. The `/api` function answers
 from Blobs only. Visitors never reach API.NSW. A second job fetches
-Queensland's prices every 10 minutes into `qld/` keys (round 15), not
-served until phase 1c: the API serves them only through three gates
-(`QLD_PUBLIC`, the published deploy, the owner's kill switch in Blobs) and
-never when over 25 minutes old (round 16).
+Queensland's prices every 10 minutes into `qld/` keys (round 15), with a
+Data Publisher Token since round 18, and its site details every 22 hours.
+The API serves them only through three gates (`QLD_PUBLIC`, the published
+deploy, the owner's kill switch in Blobs; all open since 19 November) and
+never when over 25 minutes old (round 16). The README has the off
+procedure: switch, then `QLD_PUBLIC`, then the job.
 
 **Security posture.**
 
@@ -3491,8 +3548,9 @@ never when over 25 minutes old (round 16).
   `/api/*` in deploys since round 9.
 - Queensland: the token only in the production context; nothing served
   unless `QLD_PUBLIC`, the published deploy and the kill switch all say so,
-  and the snapshot is under 25 minutes old; its licence notices travel
-  with every answer that has its prices (round 16).
+  and the snapshot is under 25 minutes old; its licence notices (both 4.2
+  and 4.3, and "may not be republished") travel with every answer that has
+  its data (rounds 16 and 18).
 - Third-party licences shipped at `/third-party-notices.txt`, the fonts'
   at `/fonts/OFL.txt` (round 16).
 - API.NSW credentials only in the production context, scoped to functions.
@@ -3513,18 +3571,23 @@ never when over 25 minutes old (round 16).
 - `/api/status`: snapshot age, the last run, read errors and API.NSW calls
   this month (234 counted by 29 October since 24 October 09:30 UTC, plus
   about 70 before that). A 503 when anything is wrong or calls pass 2,000.
+  Since round 18 Queensland's problems page too: a failed or stalled run,
+  a snapshot over 30 minutes old, site details over 24 hours, or more than
+  6,000 QLD calls in a Brisbane month (3,408 by 19 November; see the open
+  items).
 - UptimeRobot on `/api/status` every 15 minutes, emailing the owner.
 - Netlify's usage emails at 50, 75, 90 and 100% of each plan limit.
 - The API.NSW dashboard, the authority on the quota.
-- CI on every pull request: typecheck, lint, format, 1,037 tests, the build
+- CI on every pull request: typecheck, lint, format, 1,038 tests, the build
   and bundle budgets (JS, CSS and fonts); and `pnpm check:browser` (69
   checks, including CSP, CLS at desktop and phone size, touch gestures on
   the map, a tap on a price, and the card's actions on one row at four
   phone widths) and `pnpm check:a11y` (50) against its deploy preview, about two
   minutes. Both required. The same checks by hand against production.
-- PageSpeed Insights, a results page: desktop 100, mobile 100, CLS 0, and
-  100 for accessibility, best practices and SEO (4 November, after round
-  17; 99 and 99 after round 14).
+- PageSpeed Insights, a results page: desktop 99, mobile 99, CLS 0, and
+  100 for accessibility, best practices and SEO (19 November, after round
+  18, a Tweed Heads search with both states; 100 and 100 on 4 November
+  for an NSW-only page).
   The desktop machine has no GPU, so it measures the "Show the map" page:
   the page a GPU-less visitor gets, not the map drawn faster. Visitors with
   a GPU see what they saw before (round 11).
@@ -3577,9 +3640,20 @@ never when over 25 minutes old (round 16).
 - **The history backfill and `auth:reset` need an account-wide Netlify
   token**; use a short-lived one made for the job and delete it after.
 - `callsite` shows an unknown licence (its Readme says MIT).
-- Product limits: NSW and the ACT only, as fresh as retailers report plus up
-  to 30 minutes, "today" against our own snapshots, ABS 2021 suburbs, the
-  map needs WebGL.
+- Product limits: NSW, the ACT and Queensland only, as fresh as retailers
+  report plus up to 30 minutes (NSW) or 10 (Queensland, left out past 25),
+  "today" against our own snapshots, Queensland history only from 30
+  October 2026, ABS 2021 suburbs, the map needs WebGL.
+- **Queensland's licence, read cautiously** (round 18): the Licensor has not
+  answered which notice applies, what counts as metadata or what usage data
+  it wants; both notices are shown everywhere, and usage data would be
+  Netlify's site totals only. If it answers differently, change
+  `qldPriceNotices` and docs/qld-plan.md 1.5.
+- **The static copy names Queensland even when it is switched off**
+  (masthead, footer, title): reverting it is a pull request, after the
+  switch.
+- **Same-name suburbs ask which** (247 names in both NSW or the ACT and
+  Queensland, "Coolangatta" among them), as the owner chose.
 - **Without a GPU the wide map waits to be asked.** A visitor whose browser
   draws WebGL in software presses "Show the map" once a visit, in exchange
   for a page that is usable at once. Software is recognised by the
@@ -3624,6 +3698,19 @@ never when over 25 minutes old (round 16).
 
 **Open maintenance items.**
 
+- **Queensland's failed runs** (round 18): about 740 extra runs and calls
+  this November from Netlify's retries after timeouts and empty bodies,
+  mostly at :00 and :30; about 5,500 a month at this rate against the
+  6,000 that pages. Suggested: schedule `snapshot-qld` off the hour
+  (`3-59/10 * * * *`), then recount after a week.
+- **Queensland site details on the new token:** first refresh due about
+  11:50 UTC on 19 November; if refused, the job stops and `/api/status`
+  pages.
+- **A stale comment:** `netlify.toml`'s environment note says `QLD_PUBLIC`
+  "stays unset"; fix with the next code change (a `netlify.toml` change
+  deploys).
+- **Phase 2, Queensland history** from data.qld.gov.au (docs/qld-plan.md 5),
+  and the optional repository rename and custom domain (6.2).
 - **When FuelCheck publishes October 2026** (not out on 29 October; likely
   mid-November): run `pnpm history:backfill --months 4 --upload`, after
   asking the owner, to fill 1–22 October. Until then the chart shows the gap

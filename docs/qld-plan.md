@@ -5,13 +5,13 @@ its history, without the two states being able to break each other.
 
 ## Status (updated 19 November 2026, round 18)
 
-| Phase                                | State                                                                                                                   |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| 0: licence                           | **Done.** Approved as a data publisher on 19 November 2026, with a new Data Publisher Token; decisions in 1.5           |
-| 1a: pipeline, dark                   | **Live** since 29 October (pull request #16, `6ca2719`). First good production run 02:00 UTC                            |
-| 1b: search and UI, behind QLD_PUBLIC | **Merged** (pull request #17, `b3e159f`)                                                                                |
-| 1c: switch on                        | **Round 18**: the static copy, both notices, the 24-hour margin; then `QLD_PUBLIC` and the switch (`docs/decisions.md`) |
-| 2: history                           | Not started                                                                                                             |
+| Phase                                | State                                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0: licence                           | **Done.** Approved as a data publisher on 19 November 2026, with a new Data Publisher Token; decisions in 1.5                              |
+| 1a: pipeline, dark                   | **Live** since 29 October (pull request #16, `6ca2719`). First good production run 02:00 UTC                                               |
+| 1b: search and UI, behind QLD_PUBLIC | **Merged** (pull request #17, `b3e159f`)                                                                                                   |
+| 1c: switch on                        | **Live** since 19 November 2026, 02:54 UTC (pull request #29, `2c98204`, then `pnpm qld:switch on`); checks in docs/decisions.md, round 18 |
+| 2: history                           | Not started                                                                                                                                |
 
 The rest of this document is the research and plan as written before the
 build, corrected where the build found otherwise. The reasons for each
