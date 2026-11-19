@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Live NSW fuel prices near you, cheapest first for the fuel you use.",
+  "description": "Live fuel prices near you in NSW, the ACT and Queensland, cheapest first for the fuel you use.",
   "license": "MIT",
   "packageManager": "pnpm@11.24.0",
   "engines": {

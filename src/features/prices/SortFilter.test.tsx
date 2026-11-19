@@ -10,7 +10,9 @@ import {
   stationRow,
 } from '@/features/search/testing';
 import { expectNoAxeViolations } from '@/lib/testing/axe';
-import { fakeApi, json, prices, station } from '@/lib/testing/fakeApi';
+import { fakeApi, json, pinClockToFixtures, prices, station } from '@/lib/testing/fakeApi';
+
+pinClockToFixtures();
 
 /** Five stations around Erina: three brands, one price a month old. */
 const FIVE = [

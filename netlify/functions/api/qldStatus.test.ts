@@ -55,6 +55,19 @@ describe('qldStatusReport', () => {
     ]);
   });
 
+  it('reports site details from just past the licence’s 24 hours (round 18)', () => {
+    const problemsAt = (hours: number) =>
+      qldStatusReport(
+        { ...healthy, reference: { fetchedAt: new Date(NOW - hours * 3_600_000).toISOString() } },
+        NOW,
+        true,
+      ).problems;
+    expect(problemsAt(23.9)).toEqual([]);
+    expect(problemsAt(24.1)).toEqual([
+      'The site details are 24 hours old (the licence allows 24).',
+    ]);
+  });
+
   it('reports nothing recorded, and a call count past the alarm', () => {
     const report = qldStatusReport(
       { lastRun: null, written: null, calls: { ...healthy.calls, prices: 6_100 }, reference: null },

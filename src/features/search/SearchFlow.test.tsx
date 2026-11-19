@@ -2,10 +2,19 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { expectNoAxeViolations } from '@/lib/testing/axe';
-import { apiError, fakeApi, json, prices, suggestions } from '@/lib/testing/fakeApi';
+import {
+  apiError,
+  fakeApi,
+  json,
+  pinClockToFixtures,
+  prices,
+  suggestions,
+} from '@/lib/testing/fakeApi';
 import { setScreen } from '@/lib/testing/matchMedia';
 
 import { announced, openSearch, placeInput, placeInputAnyway, renderApp, results } from './testing';
+
+pinClockToFixtures();
 
 describe('searching by suburb or postcode', () => {
   it('starts with a prompt and no requests, and passes axe', async () => {

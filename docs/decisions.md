@@ -3361,6 +3361,77 @@ November; production published it at 00:47:26 UTC.
   scheduled snapshot after the deploy ran at 01:00:36 UTC, ok, one API.NSW
   call (177 counted this month), 2,388 stations served.
 
+## 2026-11-19: Round 18 (Queensland goes public: phase 1c)
+
+Queensland approved the owner as a data publisher on 19 November and issued
+a Data Publisher Token, which the owner put in `.env` and in Netlify
+(production, secret). The Licensor has not answered the owner's questions,
+so every open point in the licence takes the cautious reading; each is in
+`docs/qld-plan.md` 1.5, "Decisions for going public".
+
+### The manual: unchanged
+
+The manual the owner saved, _Fuel Prices Qld Direct API (OUT) v1.6_, is
+byte-identical (same SHA-256) to the copy round 15 built from. It is one
+guide for publishers and data consumers alike: the same endpoints, fields,
+load guidance and `FPDAPI SubscriberToken=<GUID>` header. Nothing to change.
+
+### Both notices, everywhere
+
+Round 16 put the clause 4.2 notice on prices and 4.3 on history, and left
+merged lists for the Licensor to settle. Unanswered, so now every answer
+with Queensland's data carries both, then "Queensland prices may not be
+republished.": searches, favourites and history alike (`qldPriceNotices`).
+Every list is built from the data (sorted, summed up, merged with NSW's),
+and the history view also shows today's prices, so there is no answer where
+one notice clearly suffices. One rule is also one test. The page still shows
+only what the API sent.
+
+### Other data within 24 hours, with room for a failure
+
+Clause 2.3 wants site details within 24 hours of a change. The job refreshed
+them at 23 hours and a failed try waits an hour, so a single failure took
+them past 24, and `/api/status` only said so at 26. Now: refresh at 22 hours
+(three tries before 24), and the status reports them from 24, which pages
+the owner while Queensland is public. About 3.3 reference calls a day, from
+3.1. Prices were already inside the 30 minutes (about 13 with the job
+running, never more than about 28 when it is not, then left out).
+
+### The static copy
+
+What the switch could not change: the masthead ("NSW · ACT · QLD", "NSW,
+ACT and QLD" to a screen reader), the footer (each state's credit with how
+often it is refreshed, Queensland's history start date, "Not to be
+republished"), the page title and descriptions, the web manifest,
+`package.json`'s description, the privacy note (no republishing; what
+usage figures the State would get), the social card's line, the README and
+the design system.
+
+- **Static, so it stays if Queensland is switched off.** Then the footer
+  credits a source the page is not showing until a revert; harmless, and
+  the notices themselves come and go with the data. Accepted.
+- **Screenshots and the social card stay NSW's data.** A picture of
+  Queensland's prices in a public repository would be a copy (3.1) and
+  never current (2.3). They were made again from the committed fixtures, so
+  only the masthead and footer moved.
+- **Package and repository names are unchanged** (`nsw-fuel-finder`):
+  renaming is out of scope this round (qld-plan.md 6.2).
+
+### Usage data (clause 4.8)
+
+No analytics added. If the Licensor asks, the owner sends Netlify's monthly
+figures for the site and says nothing is kept per visitor. Said in the
+privacy note too, so visitors know what would be shared: nothing about them.
+
+### Library and platform behaviour this relies on
+
+| Call                               | Behaviour relied on                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Netlify environment variables      | A function sees the values from when its deploy was built: a changed token or `QLD_PUBLIC` needs a deploy |
+| Netlify env var API (`getEnvVars`) | Returns a secret's value masked (its last characters only): checked by comparing those, never printing    |
+| Netlify CDN on deploy              | A deploy purges the cache, so no answer cached with Queensland off is served after the switch-on deploy   |
+| `context.deploy.published`         | Only the published production deploy serves Queensland (round 16); previews never                         |
+
 ## 2026-10-25: Baseline (updated 4 November, round 17)
 
 The project as of round 17 (phone UX; first written for round 10's

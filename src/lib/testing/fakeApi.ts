@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import type {
   ApiErrorBody,
@@ -37,6 +37,26 @@ export const apiError = (
 
 /** The snapshot time the fake prices claim: 2:30 pm in Sydney on 23 Oct 2026. */
 export const FETCHED_AT = '2026-10-23T03:30:00.000Z';
+
+/**
+ * For a test file whose expectations depend on how old the fake prices are
+ * ("Old price" from 14 days): the clock starts five minutes after FETCHED_AT
+ * and keeps running, for every test in the file. Only Date is faked, so
+ * timers and user-event behave as usual. Without it those files started
+ * failing on 6 November 2026, 14 days after FETCHED_AT (found in round 18).
+ */
+export function pinClockToFixtures() {
+  beforeEach(() => {
+    vi.useFakeTimers({
+      toFake: ['Date'],
+      now: Date.parse(FETCHED_AT) + 5 * 60_000,
+      shouldAdvanceTime: true,
+    });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+}
 
 export function station(overrides: Partial<StationPrice> = {}): StationPrice {
   return {

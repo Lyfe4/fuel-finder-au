@@ -8,11 +8,13 @@ import { UpstreamError } from '../upstream/errors';
 import { brisbaneDay } from '../upstream/time';
 
 /**
- * Refresh the reference data once it is this old. Under 24 hours, so a run
- * every 10 minutes keeps every site's name, brand and address within the
- * licence's 24 hours (clause 2.3): about 3 calls a day.
+ * Refresh the reference data once it is this old. Clause 2.3 wants every
+ * site's name, brand and address within 24 hours of a change. At 22 hours,
+ * a failed refresh (which waits REFERENCE_RETRY_MS) still gets a second try
+ * at 23 and a third at 24 (round 18; it was 23, which left one try).
+ * About 3.3 calls a day.
  */
-export const REFERENCE_REFRESH_MS = 23 * 60 * 60_000;
+export const REFERENCE_REFRESH_MS = 22 * 60 * 60_000;
 
 /**
  * The first Brisbane day Queensland's daily history can exist for. The fold

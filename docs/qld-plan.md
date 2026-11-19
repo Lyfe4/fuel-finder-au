@@ -3,15 +3,15 @@
 Researched 2026-10-29. The aim is to add Queensland's live prices, and later
 its history, without the two states being able to break each other.
 
-## Status (updated 29 October 2026, after phases 1a and 1b)
+## Status (updated 19 November 2026, round 18)
 
-| Phase                                | State                                                                                                      |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| 0: licence                           | **Waiting.** The owner submitted the publisher sign-up on 29 October; nothing public until it is confirmed |
-| 1a: pipeline, dark                   | **Live** since 29 October (pull request #16, `6ca2719`). First good production run 02:00 UTC               |
-| 1b: search and UI, behind QLD_PUBLIC | **Merged** (pull request #17, `b3e159f`). `QLD_PUBLIC` is unset, so nothing from Queensland is served      |
-| 1c: switch on                        | Not started. Only with the owner's explicit go-ahead, after phase 0. Round 16 added the three-way gate     |
-| 2: history                           | Not started                                                                                                |
+| Phase                                | State                                                                                                                   |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 0: licence                           | **Done.** Approved as a data publisher on 19 November 2026, with a new Data Publisher Token; decisions in 1.5           |
+| 1a: pipeline, dark                   | **Live** since 29 October (pull request #16, `6ca2719`). First good production run 02:00 UTC                            |
+| 1b: search and UI, behind QLD_PUBLIC | **Merged** (pull request #17, `b3e159f`)                                                                                |
+| 1c: switch on                        | **Round 18**: the static copy, both notices, the 24-hour margin; then `QLD_PUBLIC` and the switch (`docs/decisions.md`) |
+| 2: history                           | Not started                                                                                                             |
 
 The rest of this document is the research and plan as written before the
 build, corrected where the build found otherwise. The reasons for each
@@ -54,18 +54,18 @@ Sources, tagged as in `docs/api-notes.md`:
 
 ## Summary
 
-| Question            | Answer                                                                                                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Can we publish?** | **Not yet.** The licence lets a _data consumer_ use the data for its own purposes only. Publishing needs _publisher_ status (see 1.6), applied for on 29 October. |
-| Auth                | One static token in a header, `Authorization: FPDAPI SubscriberToken=<GUID>`. No token exchange, no documented lockout                                            |
-| Endpoints we'd use  | `GetSitesPrices` (prices, every run) and `GetFullSiteDetails`, `GetCountryBrands`, `GetCountryGeographicRegions` (reference, once a day)                          |
-| Size and speed      | Prices 804 kB raw (6,986 rows), 381 ms. Sites 628 kB (1,807 sites), 127 ms. Regions 853 kB. All gzipped on the wire **[live]**                                    |
-| Limits              | Prices "not more often than once per minute"; reference data once a day **[manual]**. No monthly quota is published, no rate-limit headers were sent **[live]**   |
-| Freshness rule      | Retailers report within 30 minutes; a **publisher** must show a change within 30 minutes **[licence 2.3]**                                                        |
-| Prices              | Tenths of a cent: `2399` is 239.9 c/L. `9999` means unavailable at that site **[manual] [live]**                                                                  |
-| Timestamps          | `TransactionDateUtc` is UTC but has **no `Z`**: `2026-09-19T21:09:50.913` **[live]**                                                                              |
-| Station IDs         | 8-digit integers (61290151–61678190); the same IDs as the open-data CSVs **[live] [open data]**                                                                   |
-| History             | Monthly CSVs on data.qld.gov.au, CC BY 4.0, changes only. August 2026 is the newest (published 2 September); September is not out on 29 October                   |
+| Question            | Answer                                                                                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Can we publish?** | **Yes, since 19 November 2026**, as a _data publisher_ (applied for 29 October; see 1.5 for the conditions as we read them, 1.6 for what it took).              |
+| Auth                | One static token in a header, `Authorization: FPDAPI SubscriberToken=<GUID>`. No token exchange, no documented lockout                                          |
+| Endpoints we'd use  | `GetSitesPrices` (prices, every run) and `GetFullSiteDetails`, `GetCountryBrands`, `GetCountryGeographicRegions` (reference, once a day)                        |
+| Size and speed      | Prices 804 kB raw (6,986 rows), 381 ms. Sites 628 kB (1,807 sites), 127 ms. Regions 853 kB. All gzipped on the wire **[live]**                                  |
+| Limits              | Prices "not more often than once per minute"; reference data once a day **[manual]**. No monthly quota is published, no rate-limit headers were sent **[live]** |
+| Freshness rule      | Retailers report within 30 minutes; a **publisher** must show a change within 30 minutes **[licence 2.3]**                                                      |
+| Prices              | Tenths of a cent: `2399` is 239.9 c/L. `9999` means unavailable at that site **[manual] [live]**                                                                |
+| Timestamps          | `TransactionDateUtc` is UTC but has **no `Z`**: `2026-09-19T21:09:50.913` **[live]**                                                                            |
+| Station IDs         | 8-digit integers (61290151–61678190); the same IDs as the open-data CSVs **[live] [open data]**                                                                 |
+| History             | Monthly CSVs on data.qld.gov.au, CC BY 4.0, changes only. August 2026 is the newest (published 2 September); September is not out on 29 October                 |
 
 ## Live verification (2026-10-29)
 
@@ -289,7 +289,82 @@ were checked word by word. Where the table differs from the text:
   notice for any uncorrected breach; 1.7, terms can change on 20 business
   days' notice; 5, audits may include our premises and records.
 
+#### Decisions for going public (round 18)
+
+Queensland approved the owner as a **data publisher** on 19 November 2026
+and issued a Data Publisher Token. The Licensor has not answered the
+owner's questions (which notice, what counts as metadata, usage data), so
+each open point takes the cautious reading. The licence text and the API
+manual were checked again: the manual in `private/qld/` is byte-identical
+to the copy round 15 built from (v1.6, 3 March 2023, one guide for
+publishers and data consumers alike), so nothing changes in endpoints,
+fields, limits or the token's form.
+
+- **4.2 and 4.3: both notices, everywhere Queensland's data is.** Every
+  answer with a Queensland price (searches, favourites through
+  `/api/stations`) now carries the 4.2 notice, the 4.3 notice and "Queensland
+  prices may not be republished.", word for word, in the snapshot's year;
+  the page shows what the API sent. A Queensland station's history carries
+  the same three after its own line, because the history view shows today's
+  prices (4.2) as well as the daily low, high and last built from them
+  (4.3). Every list we show is built from the data (sorted by distance or
+  price, summed up as cheapest, average and the saving on 50 L, and merged
+  with NSW's at the border), so there is no answer with Queensland prices
+  where 4.3 clearly does not apply; one rule everywhere is also one test.
+  `qldPriceNotices` in `shared/api.ts`. The footer credits Fuel Prices Qld
+  and the State, says how often its prices are refreshed and that they may
+  not be republished; the full notices stay with the data, so they cannot
+  drift from what is shown.
+- **2.3, prices within 30 minutes: met.** The job runs every 10 minutes and
+  takes 3 to 8 seconds. An answer can then wait up to two minutes at the CDN
+  (a minute plus a minute of stale-while-revalidate) and one in the browser.
+  So a change that reaches the Aggregator is on a visitor's screen within
+  about 13 minutes when the job is running. When it is not, the last
+  snapshot is served until it is 25 minutes old (`QLD_SERVE_MAX_MS`), then
+  left out, so nothing a visitor sees is more than about 28 minutes behind
+  the Aggregator; after that Queensland's stations are missing, with a
+  notice, rather than out of date. The licence does not say whether the 30
+  minutes start at the pump or at the report; from the pump would be
+  impossible for any publisher (retailers have 30 minutes to report), so we
+  read it as from the report.
+- **2.3, other data within 24 hours: tightened.** The site details (name,
+  brand, address, suburb) were refreshed at 23 hours, and a failed refresh
+  waits an hour, so one failure took them past 24. Now the refresh is at 22
+  hours (`REFERENCE_REFRESH_MS`), which leaves three tries before 24, and
+  `/api/status` reports them from 24 hours (was 26), which pages the owner
+  once Queensland is public. About 3.3 calls a day instead of 3.1.
+- **2.3, "must prohibit further publication":** said under every answer
+  with Queensland's data, in the footer, in the privacy note ("whether
+  copied from these pages or from this site's API") and in the README.
+- **4.5, metadata: none to carry beyond what is shown.** The API sends no
+  dataset metadata (no title, licence, date, publisher or lineage, and no
+  descriptive headers; checked again in the manual). Per price it sends a
+  time and a collection method. The time is shown on every row and card
+  ("3 h ago", "updated 3 hours ago"). The collection method is always "Q",
+  which the manual defines as "Queensland prices collected by the
+  Aggregator": that is what "Price from Fuel Prices Qld" on every
+  Queensland row, card and favourite says. If the Aggregator ever sends
+  another method, that line would need to change; the job ignores the field
+  today, so this is a known gap, not a check. Sites' last-modified time
+  (`M`) describes the Aggregator's own record keeping, not the data shown.
+- **4.8, usage data: no analytics added.** If the Licensor asks, the owner
+  sends Netlify's own monthly figures for the site (bandwidth, requests and
+  function runs from the usage page), within the 10 business days, and says
+  that the site keeps nothing per visitor, so active, new and returning
+  users by region cannot be given. Recorded in the privacy note, so
+  visitors know too.
+- **4.4 and 4.7** as built in rounds 15 and 16: each Queensland price names
+  its source; text only, no Queensland Government logo.
+- **Screenshots, the social card and test data stay NSW-only** (or made up,
+  for tests): a picture of Queensland's prices in a public repository would
+  be a copy of the data (3.1) that is never current (2.3). Only the static
+  copy (masthead, footer, descriptions) names Queensland in them.
+
 ### 1.6 What has to happen before QLD prices go public
+
+Done in round 18: publisher status in writing (19 November 2026); the
+Licensor did not answer the usage-data question, so 1.5 records the
+cautious answer; the prohibition is on the site. As planned:
 
 1. **Publisher status.** The owner is approved as a _data consumer_. Clause 4.6
    says a data consumer that wants to become a publisher "must complete a new
