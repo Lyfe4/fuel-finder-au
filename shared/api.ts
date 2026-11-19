@@ -126,13 +126,15 @@ export function qldCopyNotice(year: number): string {
 export const QLD_NO_REPUBLISHING = 'Queensland prices may not be republished.';
 
 /**
- * What goes with Queensland's prices, wherever they are shown or served:
- * the clause 4.2 notice and the prohibition. History, which is built from
- * them (daily low, high and last), carries the clause 4.3 notice instead
- * (qldDataNotice).
+ * What goes with Queensland's data, wherever it is shown or served: prices,
+ * favourites and history alike. The licensor has not said which of its two
+ * notices a merged list or a history needs, so (round 18, the cautious
+ * reading) both go everywhere: clause 4.2 for the prices as redisplayed,
+ * clause 4.3 for what is built from them (a list sorted and summed up with
+ * NSW's, a daily low, high and last), then the prohibition (2.3).
  */
 export function qldPriceNotices(year: number): string[] {
-  return [qldCopyNotice(year), QLD_NO_REPUBLISHING];
+  return [qldCopyNotice(year), qldDataNotice(year), QLD_NO_REPUBLISHING];
 }
 
 /** One source in a PricesResponse: its own snapshot time and staleness. */

@@ -16,8 +16,8 @@ can be while still being there. **Only what the screen needs is on it.**
 Everything else is one step away, and the step is the same for everyone:
 keyboard, touch, screen reader.
 
-Nothing in the identity says "NSW". The region is content ("NSW · ACT"),
-so another state is a data change, not a rebrand.
+Nothing in the identity says "NSW". The region is content ("NSW · ACT ·
+QLD" since round 18), so another state is a data change, not a rebrand.
 
 ## Rules that decide arguments
 
@@ -225,8 +225,8 @@ Every row of controls is one row on purpose at every width from 320 to
 ### Masthead
 
 One line: the wordmark "FUEL FINDER" (mono, 800, letter-spaced caps)
-at the left, "NSW · ACT" (muted) at the right, then a 1.5 px rule. The
-`<h1>` is "Fuel Finder".
+at the left, "NSW · ACT · QLD" (muted; "NSW, ACT and QLD" to a screen
+reader) at the right, then a 1.5 px rule. The `<h1>` is "Fuel Finder".
 
 ### Search
 
@@ -406,7 +406,12 @@ No tinted box. `role="alert"` as now. Old prices are a sentence in ink, bold.
 ### Footer
 
 Small muted type: the data credits (all of them; licences require them),
-the theme select (a labelled native select), and Privacy.
+each state's with how often it is refreshed, the theme select (a labelled
+native select), and Privacy. Queensland's licence notices are not in the
+footer: they come with its prices, from the API, under the results,
+favourites and history (round 18: both clause 4.2 and 4.3 notices and "may
+not be republished", the same text everywhere), so they cannot drift from
+what is shown.
 
 ### The mark
 

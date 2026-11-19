@@ -1,5 +1,5 @@
 import { ApiError } from './http';
-import { MAX_STATION_CODES, qldDataNotice, stationSource } from '../../../shared/api';
+import { MAX_STATION_CODES, qldPriceNotices, stationSource } from '../../../shared/api';
 import { FUEL_TYPE_CODES, type FuelTypeCode } from '../../../shared/fuelTypes';
 import {
   addDays,
@@ -111,7 +111,7 @@ export function historyBody(
   const since = addDays(today, -(HISTORY_WINDOW_DAYS - 1));
   const { days, sources } = mergeHistory(parse(files.backfill), parse(files.live), fuel, since);
   const licence = qld
-    ? `Daily low, high and last price from our own snapshots. ${qldDataNotice(Number(today.slice(0, 4)))}`
+    ? `Daily low, high and last price from our own snapshots. ${qldPriceNotices(Number(today.slice(0, 4))).join(' ')}`
     : HISTORY_LICENCE;
   return { fuelType: fuel, station: toSummary(station), days, sources, licence };
 }

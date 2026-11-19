@@ -86,9 +86,10 @@ describe('results with Queensland in them', () => {
     const { container } = renderApp('/?query=Tweed%20Heads');
     const list = await screen.findByRole('list', { name: 'Stations, cheapest first' });
     expect(within(list).getByText('Test Fuel Coolangatta')).toBeInTheDocument();
-    // The notices the API sent, word for word (licence clauses 4.2 and 2.3).
-    const [copyNotice] = qldPriceNotices(2026);
+    // The notices the API sent, word for word (licence clauses 4.2, 4.3 and 2.3).
+    const [copyNotice, dataNotice] = qldPriceNotices(2026);
     expect(within(results()).getByText(copyNotice ?? '')).toBeVisible();
+    expect(within(results()).getByText(dataNotice ?? '')).toBeVisible();
     expect(within(results()).getByText('Queensland prices may not be republished.')).toBeVisible();
     // Each Queensland row says so in the list, before it is opened (clause 4.4).
     const qldRow = within(list).getByRole('button', { name: /Test Fuel Coolangatta/ });

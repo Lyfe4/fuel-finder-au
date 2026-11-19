@@ -1,7 +1,8 @@
 # Fuel Finder
 
-Live fuel prices for New South Wales and the ACT, cheapest first for the fuel
-you use, on a list and a map, with four months of daily price history.
+Live fuel prices for New South Wales, the ACT and Queensland, cheapest first
+for the fuel you use, on a list and a map, with daily price history (four
+months for NSW and the ACT; Queensland's since 30 October 2026).
 
 **[nsw-fuel-finder.netlify.app](https://nsw-fuel-finder.netlify.app)**
 
@@ -24,10 +25,12 @@ uptime, and the interesting work is making that dependable.
 ```mermaid
 flowchart LR
   nsw["API.NSW Fuel API<br/>(2,500 calls a month)"]
+  qld["Fuel Prices Qld<br/>Direct API"]
   fc["FuelCheck monthly history<br/>data.nsw.gov.au, CC BY-SA"]
   subgraph netlify["Netlify"]
     job["snapshot function<br/>scheduled, every 30 min"]
-    blobs[("Netlify Blobs<br/>snapshot · daily history<br/>per-station history")]
+    qldjob["snapshot-qld function<br/>scheduled, every 10 min"]
+    blobs[("Netlify Blobs<br/>a snapshot per state · daily history<br/>per-station history")]
     api["api function<br/>/api/*"]
     site["React app<br/>static, on the CDN"]
   end
@@ -37,6 +40,8 @@ flowchart LR
 
   nsw -->|"1 call a run"| job
   job -->|"snapshot, then a slice<br/>of history"| blobs
+  qld -->|"1 call a run,<br/>site details daily"| qldjob
+  qldjob -->|"qld/ keys only"| blobs
   fc --> script -->|"once"| blobs
   blobs --> api
   browser -->|"search, favourites,<br/>history"| api
@@ -44,9 +49,11 @@ flowchart LR
   browser -->|"map, when shown"| tiles
 ```
 
-Visitors never reach API.NSW. A scheduled function fetches every NSW price
-every 30 minutes into Netlify Blobs, and the `/api` function answers searches
-from that snapshot, held in memory by a warm instance.
+Visitors never reach either state's API. A scheduled function fetches every
+NSW price every 30 minutes into Netlify Blobs, a second one every Queensland
+price every 10 minutes, and the `/api` function answers searches from the two
+snapshots, held in memory by a warm instance and merged by distance and
+price, so a search at the border lists both sides.
 
 ## Key decisions
 
@@ -68,6 +75,18 @@ restarts it, with `pnpm auth:reset`. `/api/status` reports, in plain English,
 any gap between what the job wrote and what the API serves, and this month's
 API.NSW calls against the budget. A stall of exactly that kind happened once, and is written up in
 the log.
+
+**A second state that cannot break the first.** Queensland has its own job,
+its own keys under `qld/`, its own lockout record and call count, and the
+two are only merged in memory when a search is answered, so either can fail
+and the other is still served. Its licence shapes the rest: it runs every
+10 minutes, because a publisher must show a price change within 30, and a
+Queensland snapshot over 25 minutes old is not served at all; every answer
+with a Queensland price carries the licence's notices word for word, and
+each Queensland station says where its price is from. Three gates must all
+be open before any of it is served: a setting on the deploy, the published
+production deploy (never a preview or an old one), and a kill switch the
+owner can turn off in seconds.
 
 **Answers, not just a list.** Over the results, what the cheapest is worth
 on a 50 L fill ("save $3.02 on 50 L"; screen readers hear the whole sentence,
@@ -161,17 +180,25 @@ minutes.
 
 ## Known limitations
 
-- **NSW and the ACT only.** That is what FuelCheck covers.
-- **As fresh as retailers report.** Stations must report a change within 30
-  minutes, and the snapshot adds up to 30 more. A price untouched for 14 days
-  or more is flagged.
+- **NSW, the ACT and Queensland only.** That is what FuelCheck and Fuel
+  Prices Qld cover.
+- **As fresh as retailers report.** Stations in both states must report a
+  change within 30 minutes. NSW's snapshot adds up to 30 more; Queensland's
+  up to 10, and a Queensland snapshot over 25 minutes old is left out
+  rather than shown (its stations then go missing, with a notice saying
+  so). A price untouched for 14 days or more is flagged.
 - **"Today" is against our own records.** A price's move today compares it
-  with the last price our 30-minute snapshot saw yesterday, so a change made
-  and undone between two snapshots is not seen.
-- **History has a gap from 1 to 22 October 2026.** The published history
+  with the last price our snapshot saw yesterday (Sydney's day for NSW,
+  Brisbane's for Queensland), so a change made and undone between two
+  snapshots is not seen.
+- **NSW history has a gap from 1 to 22 October 2026.** The published history
   currently ends on 30 September, and our own starts on 23 October. The chart
   bridges the gap with a dashed line marked "No data, 1–22 Oct" (no made-up
   prices) until FuelCheck publishes October (see Maintenance).
+- **Queensland history starts on 30 October 2026**, from our own snapshots.
+  Queensland's published monthly files are not joined in yet.
+- **A suburb name both states have** ("Coolangatta", "Ashfield") asks which
+  one is meant; the suggestions say the state.
 - **Suburbs are found by the ABS's 2021 boundaries**, so a suburb created or
   renamed since then is found only by postcode.
 - **The map needs WebGL.** Without it the list still has every station.
@@ -194,7 +221,9 @@ pnpm dev:netlify          # the app and the functions together, at :8888
 > account. The job's guard stops after one, but a local run keeps its own
 > record, so it can add a second failure to production's. If `/api/status`
 > reports a failed run, do not run the job locally until the cause is known.
-> Nothing else here calls API.NSW. `netlify dev --offline` runs the app and
+> Nothing else here calls API.NSW. Likewise `snapshot-qld` makes real calls
+> to Fuel Prices Qld with the token in `.env`, and a refused one stops
+> it until `pnpm auth:reset --source qld`. `netlify dev --offline` runs the app and
 > the API without the production credentials. On Windows, `netlify dev` needs
 > Developer Mode on.
 
@@ -271,7 +300,9 @@ against `pnpm serve:headers`, a preview or production.
 
 ## Privacy
 
-No account, no cookies, no analytics and no tracking. "Use my location" is
+No account, no cookies, no analytics and no tracking. Queensland's licence
+lets the State ask for usage figures; if it does, it gets only Netlify's
+monthly totals for the whole site, nothing about any visitor. "Use my location" is
 used in your browser, and only a position rounded to about 1 km is sent to
 this site, whose code never stores or logs it; nor does it store searches.
 Favourites and your theme stay on this device. Netlify, the host, counts
@@ -284,8 +315,15 @@ site at [/privacy.html](https://nsw-fuel-finder.netlify.app/privacy.html).
 
 ## Data and licences
 
-- **Live prices:** [NSW Government FuelCheck](https://www.fuelcheck.nsw.gov.au/)
+- **Live prices, NSW and the ACT:** [NSW Government FuelCheck](https://www.fuelcheck.nsw.gov.au/)
   via the API.NSW Fuel API, under its terms of use.
+- **Live prices, Queensland:** [Fuel Prices Qld](https://www.fuelpricesqld.com.au/),
+  © State of Queensland (Department of Energy and Climate), under its _Fuel
+  Price Data Licence Terms and Conditions_ as a data publisher. Its notices
+  are shown, word for word, with every Queensland price and history on the
+  site and in the API's answers. **Queensland prices may not be republished**,
+  from the site or its API. None are in this repository: its test data is
+  made up, and its screenshots show NSW.
 - **Price history** before 23 October 2026:
   [FuelCheck price history](https://data.nsw.gov.au/data/dataset/fuel-check),
   © NSW Fair Trading, [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/).

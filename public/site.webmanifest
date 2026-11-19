@@ -1,7 +1,7 @@
 {
   "name": "Fuel Finder",
   "short_name": "Fuel Finder",
-  "description": "Live NSW and ACT fuel prices near you, cheapest first.",
+  "description": "Live fuel prices near you in NSW, the ACT and Queensland, cheapest first.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

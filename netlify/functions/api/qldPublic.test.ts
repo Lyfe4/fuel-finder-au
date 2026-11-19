@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureSnapshot } from './__fixtures__/snapshot';
 import { createApiDeps } from './deps';
 import { createHandler } from './router';
-import { qldDataNotice, qldPriceNotices } from '../../../shared/api';
+import { qldCopyNotice, qldDataNotice, qldPriceNotices } from '../../../shared/api';
 import { fakeQld, QLD_FIXTURE_AT } from '../../lib/__fixtures__/fakeQld';
 import { runQldSnapshot } from '../../lib/qld/run';
 import { KEYS, memoryStore, QLD_KEYS, type KeyValueStore } from '../../lib/store';
@@ -248,7 +248,10 @@ describe('stations and history by Queensland code', () => {
     );
     expect(status).toBe(200);
     expect(body.days).toEqual([['2026-10-28', 239.9, 241.9, 241.9]]);
+    // Both notices and the prohibition (round 18): the view shows today's prices too.
     expect(body.licence).toContain(qldDataNotice(2026));
+    expect(body.licence).toContain(qldCopyNotice(2026));
+    expect(body.licence).toContain('Queensland prices may not be republished.');
     expect(body.licence).not.toContain('CC BY-SA');
   });
 });
@@ -387,15 +390,19 @@ describe('an old Queensland snapshot', () => {
   });
 });
 
-describe('licence notices on answers (round 16)', () => {
+describe('licence notices on answers (rounds 16 and 18)', () => {
   it('come with any answer that has a Queensland station, word for word', async () => {
     const { get } = await api();
     const prices = await get<PricesResponse>('/api/location?query=4225&fuel=U91');
     expect(prices.body.notices).toEqual(qldPriceNotices(2026));
+    // Both notices (4.2 and 4.3, the cautious reading), then the prohibition (2.3).
     expect(prices.body.notices?.[0]).toMatch(
       /^© State of Queensland \(Department of Energy and Climate\) 2026\. /,
     );
-    expect(prices.body.notices?.[1]).toBe('Queensland prices may not be republished.');
+    expect(prices.body.notices?.[1]).toMatch(
+      /^Based on or contains data provided by the State of Queensland \(Department of Energy and Climate\) 2026\. /,
+    );
+    expect(prices.body.notices?.[2]).toBe('Queensland prices may not be republished.');
     const stations = await get<StationsResponse>('/api/stations?codes=qld-61000001');
     expect(stations.body.notices).toEqual(qldPriceNotices(2026));
   });

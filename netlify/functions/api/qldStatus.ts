@@ -22,8 +22,12 @@ import type { QldSourceStatus } from '../../../shared/api';
  */
 export const QLD_MONTHLY_ALERT = 6_000;
 
-/** The licence's 24 hours for site details, plus a margin for a failed refresh. */
-const REFERENCE_MAX_AGE_MS = 26 * 60 * 60_000;
+/**
+ * The licence's 24 hours for site details (clause 2.3), with no margin
+ * (round 18; it was 26): the job refreshes at 22 hours, so this is only
+ * reached after three failed tries, and the owner hears of it at once.
+ */
+const REFERENCE_MAX_AGE_MS = 24 * 60 * 60_000;
 
 const lastRunSchema = z.object({
   ok: z.boolean(),

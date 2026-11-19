@@ -24,7 +24,8 @@ export function App({ queryClient }: { queryClient?: QueryClient }) {
           <h1 className={styles.title}>Fuel Finder</h1>
           <p className={styles.region}>
             NSW <span aria-hidden="true">·</span>
-            <VisuallyHidden> and</VisuallyHidden> ACT
+            <VisuallyHidden>,</VisuallyHidden> ACT <span aria-hidden="true">·</span>
+            <VisuallyHidden> and</VisuallyHidden> QLD
           </p>
         </header>
         <main className={styles.main}>
@@ -32,18 +33,28 @@ export function App({ queryClient }: { queryClient?: QueryClient }) {
         </main>
         <footer className={styles.footer}>
           <p>
-            Fuel prices from{' '}
+            NSW and ACT prices from{' '}
             <a href="https://www.fuelcheck.nsw.gov.au/">NSW Government FuelCheck</a>, refreshed
             every 30 minutes.
           </p>
+          {/*
+           * Round 18. Static, so it stays if Queensland is switched off; the
+           * licence notices themselves come with the prices from the API.
+           */}
           <p>
-            Price history before 23 October 2026 from{' '}
+            Queensland prices from <a href="https://www.fuelpricesqld.com.au/">Fuel Prices Qld</a>,
+            refreshed every 10 minutes. © State of Queensland (Department of Energy and Climate);
+            the licence notices are shown with the prices. Not to be republished.
+          </p>
+          <p>
+            NSW price history before 23 October 2026 from{' '}
             <a href="https://data.nsw.gov.au/data/dataset/fuel-check">
               NSW FuelCheck price history
             </a>{' '}
             (NSW Fair Trading), used under{' '}
             <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA</a>. Our daily low,
-            high and last prices made from it are shared under the same licence.
+            high and last prices made from it are shared under the same licence. Queensland price
+            history starts on 30 October 2026, from our own records.
           </p>
           <p>
             Suburb and postcode locations based on{' '}

@@ -34,7 +34,12 @@ const FIXTURES = join(ROOT, 'scripts/screenshots/fixtures');
 const OUT = join(ROOT, 'docs/screenshots');
 const PRODUCTION = 'https://nsw-fuel-finder.netlify.app';
 
-/** The scene: a Central Coast search, its cheapest station, three favourites. */
+/**
+ * The scene: a Central Coast search, its cheapest station, three favourites.
+ * NSW on purpose (round 18): a picture of Queensland's prices would be a
+ * copy of its licensed data in a public repository (clause 3.1), and never
+ * current (clause 2.3). Only the static copy shows Queensland here.
+ */
 const SEARCH = { fuel: 'U91', query: '2250' };
 
 const { values } = parseArgs({
@@ -293,7 +298,7 @@ try {
     `<div style="position:absolute;left:64px;top:64px;width:500px">
        <div class="wordmark">${mark} Fuel Finder</div>
        <h1>Live fuel prices, cheapest first.</h1>
-       <p>NSW and the ACT. On a list and a map, with four months of price history. Today on the Central Coast: <span class="figure">save $${(Math.round(summarySaving * 100) / 100).toFixed(2)}</span> on 50 L.</p>
+       <p>NSW, the ACT and Queensland. On a list and a map, with price history. Today on the Central Coast: <span class="figure">save $${(Math.round(summarySaving * 100) / 100).toFixed(2)}</span> on 50 L.</p>
      </div>
      <div class="screen" style="left:640px;top:56px;width:250px;height:620px"><img src="${image('phone-light-results')}"></div>
      <div class="screen" style="left:910px;top:96px;width:250px;height:620px"><img src="${image('phone-dark-map')}"></div>`,
