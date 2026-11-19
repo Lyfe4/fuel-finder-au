@@ -3532,6 +3532,19 @@ counts at once, and a snapshot over 30 minutes old always does.
 Also: `netlify.toml`'s comment on `QLD_PUBLIC` no longer says it stays
 unset.
 
+### eslint-plugin-import-x pinned at 4.17.1
+
+Dependabot's dev group (pull request #32) took it from 4.17.1 to 4.18.1, and
+`import-x/order` then reported 65 errors in code it had passed: all of them
+a parent import (`../`) now wanted before a sibling (`./`) inside our one
+combined parent, sibling and index group. 4.18.0 rewrote the plugin's module
+analysis and says "no behavior changes are intended", so this reads as a
+regression, not a new rule. Rather than reorder 65 imports to follow it, or
+loosen the rule: pinned at exactly 4.17.1, and Dependabot ignores 4.18.x.
+**To lift:** when a later version passes `pnpm lint` unchanged, remove the
+pin and the ignore in `.github/dependabot.yml`. The other eleven updates in
+the group went in.
+
 ## 2026-10-25: Baseline (updated 19 November, round 18)
 
 The project as of round 18 (Queensland public; first written for round 10's
