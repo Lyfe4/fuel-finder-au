@@ -54,7 +54,7 @@ export function App({ queryClient }: { queryClient?: QueryClient }) {
             (NSW Fair Trading), used under{' '}
             <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA</a>. Our daily low,
             high and last prices made from it are shared under the same licence. Queensland price
-            history starts on 30 October 2026, from our own records.
+            history starts on 19 November 2026, from our own records.
           </p>
           <p>
             Suburb and postcode locations based on{' '}

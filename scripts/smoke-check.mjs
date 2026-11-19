@@ -655,6 +655,42 @@ try {
     ).y < 500,
   );
   check('MapLibre is not downloaded for the list', (await mapChunks(mobile)) === 0);
+
+  // Round 21: the saving's ⓘ, by touch. It opens and closes on a tap, moves
+  // nothing below it, and fits the screen.
+  const info = mobile.getByRole('button', { name: 'What this saving means' });
+  if ((await info.count()) === 0) {
+    check('the saving’s ⓘ (no saving shown for this search; not checked)', true);
+  } else {
+    const firstRow = mobile
+      .getByRole('list', { name: 'Stations, cheapest first' })
+      .getByRole('heading')
+      .first();
+    const rowBefore = (await firstRow.boundingBox())?.y;
+    const infoBox = await info.boundingBox();
+    check(
+      'the saving’s ⓘ is a target of at least 24 px',
+      Boolean(infoBox && infoBox.width >= 24 && infoBox.height >= 24),
+      infoBox ? `${infoBox.width.toFixed(0)} × ${infoBox.height.toFixed(0)}` : '',
+    );
+    await mobile.touchscreen.tap(infoBox.x + infoBox.width / 2, infoBox.y + infoBox.height / 2);
+    const explanation = mobile.getByText(/^Filling 50 litres \(about one tank\)/);
+    check(
+      'a tap on the saving’s ⓘ shows what it means, and says so',
+      (await info.getAttribute('aria-expanded')) === 'true' && (await explanation.isVisible()),
+    );
+    check(
+      'and moves nothing (the first row stays put, no sideways scroll)',
+      (await firstRow.boundingBox())?.y === rowBefore &&
+        (await mobile.evaluate(() => document.documentElement.scrollWidth <= 375)),
+    );
+    await mobile.touchscreen.tap(20, 790);
+    check(
+      'a tap elsewhere closes it',
+      (await info.getAttribute('aria-expanded')) === 'false' && !(await explanation.isVisible()),
+    );
+  }
+
   await mapButton.click();
   await mobile.locator('canvas.maplibregl-canvas').waitFor();
   check('Map shows the map, and only then downloads it', (await mapChunks(mobile)) > 0);

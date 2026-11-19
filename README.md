@@ -2,7 +2,7 @@
 
 Live fuel prices for New South Wales, the ACT and Queensland, cheapest first
 for the fuel you use, on a list and a map, with daily price history (four
-months for NSW and the ACT; Queensland's since 30 October 2026).
+months for NSW and the ACT; Queensland's since 19 November 2026).
 
 **[fuel-finder-au.netlify.app](https://fuel-finder-au.netlify.app)**
 
@@ -90,7 +90,8 @@ owner can turn off in seconds.
 
 **Answers, not just a list.** Over the results, what the cheapest is worth
 on a 50 L fill ("save $3.02 on 50 L"; screen readers hear the whole sentence,
-average included). Each station is one line, its name, price, distance and
+average included), with an ⓘ beside it that says what that means, by tap,
+click, hover or keyboard. Each station is one line, its name, price, distance and
 age; pressed, it opens to say how far the price has moved today ("↓ 2.0
 today", from our own history, shown only where it moved), with directions in
 the phone's own maps app. The list can be sorted nearest first and filtered by
@@ -197,8 +198,10 @@ minutes.
   currently ends on 30 September, and our own starts on 23 October. The chart
   bridges the gap with a dashed line marked "No data, 1–22 Oct" (no made-up
   prices) until FuelCheck publishes October (see Maintenance).
-- **Queensland history starts on 30 October 2026**, from our own snapshots.
-  Queensland's published monthly files are not joined in yet.
+- **Queensland history starts on 19 November 2026**, from our own snapshots:
+  the day the site became a Queensland data publisher. Earlier days were
+  recorded under a data consumer's licence (own use only), so they are kept
+  but not shown. Queensland's published monthly files are not joined in yet.
 - **A suburb name both states have** ("Coolangatta", "Ashfield") asks which
   one is meant; the suggestions say the state.
 - **Suburbs are found by the ABS's 2021 boundaries**, so a suburb created or
@@ -243,8 +246,9 @@ pnpm dev:netlify          # the app and the functions together, at :8888
 | `pnpm history:backfill`  | Rebuild history from FuelCheck's monthly files (`--upload` writes to Blobs) |
 | `pnpm auth:reset`        | Show the lockout guard's record and, if you type `reset`, clear it          |
 | `pnpm qld:switch`        | Show the Queensland kill switch; `on` or `off`, after typing the word       |
+| `pnpm deploys:prune`     | List old live deploys to delete (dry run); `--delete`, after typing a word  |
 
-CI runs typecheck, lint, format, tests, build and the bundle budget on every
+CI audits the production dependencies (`pnpm audit --prod`) and runs typecheck, lint, format, tests, build and the bundle budget on every
 pull request and every push to `main`. `main` is protected: each change
 arrives as a pull request that has passed CI, squash-merged so every commit
 on `main` builds on its own. Merging deploys production. Deploy previews have
@@ -277,6 +281,29 @@ against `pnpm serve:headers`, a preview or production.
   - **On since 19 November 2026** (round 18, as a data publisher):
     `QLD_PUBLIC=true` in production only, the 1c deploy (`2c98204`), then
     `pnpm qld:switch on` at 02:54 UTC.
+  - **Rebuilding production after an environment change.** An environment
+    variable reaches functions only in deploys built after it changed, so
+    steps 2 and 3 below need a new production build. **Never use "Trigger
+    deploy > Deploy site"** for this: when `main`'s newest commit is
+    docs-only, `netlify.toml`'s `ignore` rule cancels that build ("Canceled
+    build due to no content change"), and the change never takes effect
+    (audit 3, A1). Use one of these, then confirm the deploy reached
+    **Published** (Deploys, the top entry; or `netlify api listSiteDeploys`,
+    `state: ready` with `published_at`) before trusting the change:
+    - **The build hook** (round 21), which `ignore` never cancels: Netlify >
+      Site configuration > Build & deploy > Continuous deployment > Build
+      hooks > "Emergency rebuild (env change, QLD off)" shows its URL; post
+      to it, e.g. `Invoke-RestMethod -Method Post -Uri <that URL>` in
+      PowerShell or `curl -X POST -d '' <that URL>`. Proven on 19 November
+      2026: it built and published the docs-only `95fffa7` that the git
+      build had cancelled. Keep the URL private: anyone with it can start
+      builds (build minutes, not data).
+    - **From a phone:** Deploys > Trigger deploy > **Clear cache and deploy
+      site**. Without a cache, Netlify sets `CACHED_COMMIT_REF` to
+      `COMMIT_REF`, and the rule builds in that case (round 20). It also
+      costs the next build its cache; the hook is the better choice at a
+      computer.
+    - Either way, not on :00 or :30 (NSW) or :03, :13 … :53 (Queensland).
   - **Off, in this order.** Each step is a stronger, slower lock than the
     one before; the first alone stops publication.
     1. **The kill switch, at once:**
@@ -285,22 +312,45 @@ against `pnpm serve:headers`, a preview or production.
        within about two minutes (15 s in each warm API instance, then the
        CDN's minute or two), with no redeploy. `/api/status` then shows
        Queensland `public: false`, and its problems stop paging. Check:
-       a search at Coolangatta lists NSW stations only.
+       a search at Coolangatta lists NSW stations only. It needs a computer
+       with this repository: Netlify's Blobs page (Data & Storage > Blobs)
+       is documented as browse and download only, so the switch cannot be
+       turned off there.
     2. **`QLD_PUBLIC`:** Netlify > Site configuration > Environment
-       variables > `QLD_PUBLIC` > delete it (or empty its Production value).
-       It only takes effect in deploys built afterwards (step 3's), and then
-       a mistaken `qld:switch on` can no longer serve anything.
-    3. **Stop the job:** delete `QLD_FPD_TOKEN` the same way, then trigger a
-       production deploy (Deploys > Trigger deploy > Deploy site; not on :00
-       or :30). From that deploy the job finds no token and makes no call
-       (`not_configured`). Even before it, a stopped job is a backstop: a
-       Queensland snapshot over 25 minutes old is never served.
+       variables > `QLD_PUBLIC` > delete it (or empty its Production value),
+       then rebuild production as above and confirm it published. A mistaken
+       `qld:switch on` can then no longer serve anything. **Away from a
+       computer, this is the fastest off:** delete it, then "Clear cache and
+       deploy site"; Queensland leaves the published deploy when that deploy
+       publishes (a deploy also clears the CDN), a minute or two. Until the
+       switch is turned off too, `/api/status` pages ("switched on, but
+       this deploy was built without QLD_PUBLIC=true", round 21): expected,
+       and a reminder to do step 1.
+    3. **Stop the job:** delete `QLD_FPD_TOKEN` the same way, then rebuild
+       production as above. From that deploy the job finds no token and
+       makes no call (`not_configured`). Even before it, a stopped job is a
+       backstop: a Queensland snapshot over 25 minutes old is never served.
     - Then, if it is for good, a pull request reverting the static copy
       (masthead, footer, title and descriptions, privacy note, README), which
       the switch cannot change.
     - **If the licence ends** (clause 4.6: stop using the data): all three
       steps the same day. Ask before deleting what is stored under `qld/`
       and the `qld-` history files.
+  - **`/api/status` also pages if the switch is on but the published deploy
+    cannot serve Queensland** (built without `QLD_PUBLIC=true`): Queensland
+    would otherwise vanish with the status still 200. Fix: restore the
+    variable and rebuild, or, if off was meant, turn the switch off.
+- **At the end of every round, prune old deploys.** Every live deploy keeps
+  its own address, code and `/api` rate-limit bucket on production's Blobs,
+  so each one shortens how long one address takes to spend the month's
+  function runs. After the round's production deploy is verified:
+  `NETLIFY_SITE_ID=... NETLIFY_AUTH_TOKEN=... pnpm deploys:prune` lists
+  what it would delete (a dry run: older production deploys, previews of
+  closed pull requests, branch deploys) and what it keeps (the published
+  deploy, the three newest other production deploys for a rollback, and
+  previews of open pull requests). The owner approves that list; then
+  `pnpm deploys:prune --delete` and type `delete N`. It refuses any site but
+  `fuel-finder-au`, and never touches the `nsw-fuel-finder` redirect site.
 - **If `check:browser` says Netlify's badge is back**, the policy is blocking
   it: decide whether to allow it again (docs/decisions.md, round 9).
 - **UptimeRobot** checks
@@ -309,9 +359,11 @@ against `pnpm serve:headers`, a preview or production.
   status is a 503 (a stalled or failing snapshot job, the lockout guard
   stopped, or more than 2,000 API.NSW calls this month; and, while
   Queensland is served, the same for its job, site details over 24 hours
-  old, or more than 6,000 QLD calls this month). Each check is a
-  function run (about 2,900 a month), so not more often. When an alert
-  arrives, open `/api/status`: its `problems` say which.
+  old, or more than 6,000 QLD calls this month; or the switch on while the
+  published deploy cannot serve Queensland). There are two monitors; each
+  check is a function run (about 2,900 a month each, about 5,900 together),
+  so not more often. When an alert arrives, open `/api/status`: its
+  `problems` say which.
 - **Keep watching the quota** on the API.NSW dashboard (about 1,500 calls a
   month at this schedule; `/api/status` shows our own count) and Netlify's
   usage page. On Legacy Free, reaching any limit pauses every site on the
@@ -343,11 +395,17 @@ site at [/privacy.html](https://fuel-finder-au.netlify.app/privacy.html).
   site and in the API's answers. **Queensland prices may not be republished**,
   from the site or its API. None are in this repository: its test data is
   made up, and its screenshots show NSW.
-- **Price history** before 23 October 2026:
+- **Price history, NSW and the ACT,** before 23 October 2026:
   [FuelCheck price history](https://data.nsw.gov.au/data/dataset/fuel-check),
   © NSW Fair Trading, [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/).
-  The daily low, high and last prices derived from it (and from our own
-  snapshots) are shared under **CC BY-SA 4.0**, and credited wherever shown.
+  The daily low, high and last prices derived from it are shared under
+  **CC BY-SA 4.0**, and credited wherever shown. The days after it come from
+  our own snapshots of the API.NSW Fuel API, whose terms state no open
+  licence, so those are used under its terms and not relicensed; the API's
+  history answers say which days are which.
+- **Price history, Queensland,** from 19 November 2026 (the day the site
+  became a data publisher), from our own snapshots, with Queensland's
+  notices like its prices.
 - **Suburbs and postcodes:** Australian Bureau of Statistics,
   [ASGS Edition 3](https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3)
   (2021), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), built by

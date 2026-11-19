@@ -3560,8 +3560,10 @@ registration that names it. The owner first accepted the old links
 breaking (qld-plan.md 6.2 had recommended a custom domain instead), then
 chose to hold the name. A second site, `nsw-fuel-finder` (id
 `a529d89d-…`, team lyfe4, no repository, build or functions), serves only
-`_redirects`: `/*  https://fuel-finder-au.netlify.app/:splat  301!`, query
-strings passed on. A script watched for the rename and claimed the name at
+one redirect rule: `/*  https://fuel-finder-au.netlify.app/:splat  301!`, query
+strings passed on. (Corrected in round 21: the rule is in the deploy's
+`netlify.toml`, beside a one-line `index.html`; there is no `_redirects`
+file. The forced rule answers every path, those two files included.) A script watched for the rename and claimed the name at
 once: the site was renamed at 04:16:31 UTC on 19 November, the name
 claimed at 04:16:35, the redirect live at 04:16:51. Each redirect is a
 few hundred bytes at the edge and no function run. GitHub redirects the old
@@ -3662,11 +3664,199 @@ typescript-eslint 8.72 and `eslint-plugin-import-x` 4.17.1.
   is left (`pnpm why minimatch`). Dependabot ignores only `4.18.x`, so it
   still offers 4.19 and later, in the weekly development group.
 
-## 2026-10-25: Baseline (updated 19 November, round 20)
+## 2026-11-19: Round 21 (audit round 3 fixes)
 
-The project as of round 20 (renamed `fuel-finder-au`; Queensland public
-since round 18; first written for round 10's `d6dc135`, updated for rounds
-11 to 19). Future work
+A third independent, read-only audit (security, health and architecture)
+came before this round. The owner accepted it and chose:
+
+| ID  | Finding                                                                                        | Call                    |
+| --- | ---------------------------------------------------------------------------------------------- | ----------------------- |
+| A1  | The QLD off procedure's "Trigger deploy" is cancelled by `ignore` on a docs-only `main`        | Fixed (hook, docs)      |
+| A2  | 27 live deploys, not 8: one address could spend the month's runs in about 40 minutes           | Fixed (script, routine) |
+| A3  | Queensland history recorded as a data consumer (30 Oct to 18 Nov) was published                | Fixed                   |
+| A4  | Queensland could vanish with `/api/status` 200 (switch on, `QLD_PUBLIC` lost from the deploy)  | Fixed                   |
+| A5  | The kill switch needs a computer; no phone path                                                | Documented              |
+| A6  | Two QLD blips in a row page for ~10 minutes; a frozen upstream is never detected               | Accepted                |
+| A7  | A tab left open in focus shows Queensland prices for ever (no interval refetch)                | Accepted                |
+| A8  | Our own NSW history (from API.NSW) was relabelled CC BY-SA                                     | Fixed                   |
+| A9  | Node 22 reaches end of life on 30 April 2027                                                   | Accepted (Node 24, Q1)  |
+| A10 | Docs drift (qld-plan 6.2, the redirect site's files, UptimeRobot runs, the Baseline's deploys) | Fixed                   |
+| A11 | `pnpm audit` can never gate CI (the dismissed dev-only minimatch alert)                        | Fixed (`--prod` in CI)  |
+| A12 | Queensland's `stale` flag can never be true while it is served (30 min against 25)             | Accepted                |
+| A13 | Bundle budgets nearly full (initial CSS 0.3 kB, JS 2.8 kB)                                     | Accepted                |
+
+Part B (architecture): no changes this round; its "before the next state"
+list is in the Baseline below as the plan for a third state.
+
+### The off procedure's rebuild (A1)
+
+**The finding:** the README's steps 2 and 3 said "Trigger deploy > Deploy
+site". Netlify runs `ignore` for every build but a build hook's ("The
+`ignore` command won't cancel a build triggered by a build hook"), and
+`main`'s newest commit was docs-only (`95fffa7`, round 20's verified
+notes), whose git build had been "Canceled build due to no content change"
+at 05:10 UTC. A manual trigger diffs `CACHED_COMMIT_REF` (`1d7b540`) with it,
+finds docs only, and cancels: `QLD_PUBLIC` or the token would have stayed
+in production.
+
+**Decision:**
+
+- **A build hook,** "Emergency rebuild (env change, QLD off)" on `main`
+  (created through Netlify's API, id `6afe91df…`; its URL is in Netlify's
+  UI and nowhere in the repository: anyone with it can start builds).
+- **Proven on a docs-only `main`:** posted to it once at 06:06:31 UTC; the
+  deploy (`6afe91ea…`, "Deploy triggered by hook") built `95fffa7` and was
+  published at 06:06:56. `/api/status` then healthy, Queensland public.
+  The same code as before, so nothing changed for visitors.
+- **From a phone:** "Clear cache and deploy site": with no cache
+  `CACHED_COMMIT_REF` equals `COMMIT_REF`, and since round 20 the rule
+  builds then. Not proven live this round (it would cost the build cache);
+  the rule's handling of equal refs was tested in round 20.
+- The README now says never "Deploy site" for an environment change, and to
+  confirm the deploy reached Published before trusting it.
+
+### Old deploys, pruned by a script (A2)
+
+**The finding:** `listSiteDeploys` had 27 live deploys (12 previews), not
+the 8 the Baseline said. Each is its own 120-a-minute bucket, so one
+address could spend the month's 125,000 runs in about 39 minutes.
+
+**Decision:** `pnpm deploys:prune` (`scripts/deploys-prune.mjs`, the plan
+in `scripts/lib/deploys.mjs`, tested in `netlify/lib/deploysPrune.test.ts`):
+a dry run by default listing every live deploy with keep or delete and why;
+`--delete` deletes only after typing `delete N`, then re-lists to check.
+Kept: the published deploy, the three newest other production deploys
+(rollback), previews of open pull requests (read from GitHub; if that read
+fails, nothing is deleted). It refuses any site but `fuel-finder-au` and
+names the redirect site's id to refuse it outright (checked). Part of the
+end-of-round routine in the README. The first run's list (22 to delete, 5
+kept) went to the owner for approval.
+
+### `/api/status` pages when Queensland is meant on but cannot be (A4)
+
+**The finding:** with the gate shut by `QLD_PUBLIC` alone, `/api/status`
+said Queensland `public: false` and stayed 200. Deleting or mistyping the
+variable and rebuilding would hide Queensland with no alert.
+
+**Decision** (`qldGate.ts` `qldIntendedButShut`, beside `qldFor`, moved there from `router.ts`; `status.ts`): on the
+published deploy only, when `QLD_PUBLIC` is not `true`, `/api/status` reads
+the kill switch; if it is on, the problem "Queensland is switched on, but
+this deploy was built without QLD_PUBLIC=true, so it serves no Queensland
+prices." makes it a 503, which pages. The switch is the owner's stated
+intent, so this is the one shut gate nobody meant. Not raised on a preview
+or an old deploy (they never serve Queensland, by design), with the switch
+off or missing, or when all three are open. The exposure test's promise is
+unchanged for every route but status; status may now read the switch on
+the published deploy (the switch is not Queensland's data). Tested across
+all nine shut gates (`qldExposure.test.ts`: a 503 exactly for the two
+`QLD_PUBLIC` cases with the switch on) and seven named cases in
+`qldPublic.test.ts`.
+
+**Real usage:** in the phone off procedure (delete `QLD_PUBLIC`, rebuild)
+this fires until the switch is turned off too: expected, and the README
+says so.
+
+### Queensland history only from 19 November (A3)
+
+**The finding:** the job has written Queensland's daily files since 30
+October, while the owner was a data consumer (clause 2.1: own purposes
+only); since round 18 they were served as history and as the "yesterday"
+behind a move today.
+
+**Decision (owner):** serve Queensland history only from 19 November 2026,
+the day publisher status was granted (`QLD_PUBLISHED_FROM`,
+`netlify/lib/snapshot/format.ts`). `/api/history` for a Queensland station
+starts there; the "yesterday" day file is read only when it is that day or
+later, so on 19 November itself no Queensland station shows a move today.
+The earlier days stay stored, unpublished; moving the date back is one
+line if the Licensor agrees in writing. Footer, README and qld-plan.md 1.5
+say 19 November. Tests: history with days on 30 October, 18, 19 and 20
+November returns only the last two; no move today on 29 October or 19
+November even with the day file present; the move on 20 November works.
+
+### NSW history's licence, per source (A8)
+
+API.NSW's product page states no licence, and its Terms defer to "the
+authority administering the licence or information". FuelCheck's price
+history on data.nsw.gov.au is CC BY-SA (its CKAN record: `cc-by-sa`). So
+`/api/history`'s `licence` for an NSW station now names each source with
+its days: FuelCheck's published days "shared under CC BY-SA 4.0"; our own
+days "from our own snapshots of NSW FuelCheck prices, through the API.NSW
+Fuel API, used under its terms" (`nswHistoryLicence`). The page's credit
+already spoke only of the FuelCheck-derived days; the README's "(and from
+our own snapshots)" claim is gone.
+
+### The saving, explained
+
+The owner asked for an ⓘ beside "save $X on 50 L" (wording unchanged),
+saying: "Filling 50 litres (about one tank) at the cheapest station here,
+instead of at the average price of the stations shown."
+
+- **A real button** (`PriceSummaryLine.tsx`, `SavingInfo`), named "What
+  this saving means", `aria-expanded` and `aria-controls` on the
+  explanation. Tap or click toggles it, Enter and Space too (native). A
+  mouse resting on the button shows it until the mouse leaves the button
+  and the explanation; a click while it shows keeps it open (so a hover
+  then a click does not close it). Escape or a press anywhere else closes
+  it, focus staying where it was. Only when a saving is shown.
+- **No layout shift:** the explanation is absolutely placed under the
+  heading line (`.top` is its containing block) over the list, full width
+  of the docket. The icon is at text size; its target is about 41 × 46 px
+  by padding with an equal negative margin, so the line keeps its height.
+  Measured in Chromium: no layout-shift entries, the first row did not
+  move, no sideways scroll at 375 px; dark and light themes checked.
+- **Budgets:** initial CSS had 0.3 kB to spare. The first version (with a
+  wrapper and an `::after` target) was 0.3 kB over, so it was cut: the
+  button and explanation sit inside the summary line, the target is
+  padding and negative margin. It fits (initial CSS 25.58 of 25.6 kB).
+- `Info` (Tabler's info-circle) joins `icons.ts`.
+- **Tests:** five in `SortFilter.test.tsx` (toggle and `aria-expanded`,
+  axe while open, keyboard and Escape with focus kept, outside press vs a
+  press on the explanation, hover then click), and four in
+  `check:browser` on a phone (target size, a real tap opens and says so,
+  nothing moves, a tap elsewhere closes).
+
+### CI audits what ships (A11)
+
+`pnpm audit --prod` before typecheck: the browser bundle's and the
+functions' dependencies, clean today. The full audit still reports the
+dismissed dev-only minimatch alert (round 20), so it stays out of CI.
+
+### Library and platform behaviour this relies on
+
+| Call                                   | Behaviour relied on                                                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Netlify `ignore`                       | Runs for git, UI and API builds; "won't cancel a build triggered by a build hook" (docs, updated 3 October 2026)    |
+| Netlify build hook                     | A POST builds its branch's newest commit as a production deploy; seen on `95fffa7`                                  |
+| "Clear cache and deploy site"          | No cache, so `CACHED_COMMIT_REF` = `COMMIT_REF` (Netlify's docs); our rule builds then (round 20)                   |
+| Netlify Blobs UI                       | Data & Storage > Blobs: browse and download; deleting or editing entries there is not documented                    |
+| Netlify API `deleteSiteDeploy`         | Removes the deploy and its address; the published deploy is never in the delete list                                |
+| GitHub `GET /repos/…/pulls?state=open` | Public repository, so no token needed (60 an hour unauthenticated); `GITHUB_TOKEN` used if set                      |
+| `pnpm audit --prod`                    | Leaves out devDependencies; exits non-zero on any advisory at or above low                                          |
+| `pointerenter`/`pointerleave`          | `pointerType` "mouse" for a mouse; a touch tap gives "touch" (ignored for hover) and then a click                   |
+| `hidden` attribute                     | `display: none` unless CSS sets `display`; `.tip` sets none, so `hidden` hides it and removes it from the a11y tree |
+| Absolutely positioned `<span>`         | Blockified, so it lays out as a block; inherits `white-space: nowrap` from the line, hence `white-space: normal`    |
+
+### Accepted this round
+
+- **A6:** two Queensland blips in a row page for about 10 minutes (when
+  visitors are about to lose Queensland anyway), and a "frozen" upstream
+  (runs succeed, prices never change) is not detected for either state.
+- **A7:** a tab left open in focus never refetches; the page says "as of"
+  each source's time.
+- **A9:** Node 22 is end of life on 30 April 2027: move to Node 24 (`.nvmrc`,
+  `NODE_VERSION`, `@types/node`) in Q1 2027.
+- **A12:** Queensland's `stale` flag (30 minutes) cannot be true while it is
+  served (25); harmless.
+- **A13:** the budgets are nearly full; the next feature with CSS in the
+  first load raises the budget on purpose or moves code behind a dynamic
+  import.
+
+## 2026-10-25: Baseline (updated 19 November, round 21)
+
+The project as of round 21 (audit round 3 fixed; renamed `fuel-finder-au` in
+round 20; Queensland public since round 18; first written for round 10's
+`d6dc135`, updated for rounds 11 to 20). Future work
 starts from here; this entry is the summary, and the rounds above have the
 reasons.
 
@@ -3681,12 +3871,14 @@ overlap); a dot or its price selects a station, and on a phone the card
 under the map is brought into view with focus on its name; a tap on empty
 map or Escape clears the selection, and drags, pinches and double-taps do
 not. A one-line summary
-(cheapest, average, what the difference is worth on 50 L), sort by price or
+(cheapest, average, what the difference is worth on 50 L, with an ⓘ that
+explains it, round 21), sort by price or
 distance, brand and price-age filters, today's move per station, directions
 in the phone's maps app, the nearest stations up to 100 km when nothing is in
 range. Favourites on the device. Four months of daily history per NSW
 station (FuelCheck's published files joined to our own snapshots), and
-Queensland's from 30 October 2026 (our own), as a chart with a
+Queensland's from 19 November 2026 (our own; the days recorded from 30
+October as a data consumer are kept, not served, round 21), as a chart with a
 keyboard slider and a table. Light by default, dark, or "Match device"
 (round 17). All state in the URL.
 
@@ -3696,7 +3888,7 @@ to one line after a search and the first price is at about 230 px. Atkinson
 Hyperlegible Next and Mono, self-hosted; one accent, carbon blue, for
 meaning only; the map restyled in the same tokens, the cheapest price never
 dropped. One icon set, Tabler, as inline SVG (round 14): no text characters
-as icons, icon-only only for close, clear, zoom and search. Every row of
+as icons, icon-only only for close, clear, zoom, search and the ⓘ. Every row of
 controls is one row, or breaks in one planned place, from 320 to 1440 px.
 Names and addresses in capitals are set in title case in the browser, brand
 capitals kept. `docs/design-system.md` is the source of truth for the look.
@@ -3711,7 +3903,10 @@ round 18, and its site details every 22 hours.
 The API serves them only through three gates (`QLD_PUBLIC`, the published
 deploy, the owner's kill switch in Blobs; all open since 19 November) and
 never when over 25 minutes old (round 16). The README has the off
-procedure: switch, then `QLD_PUBLIC`, then the job.
+procedure: switch, then `QLD_PUBLIC`, then the job, each rebuild by the
+build hook or "Clear cache and deploy site", never "Deploy site", which
+`ignore` cancels on a docs-only `main` (round 21). `/api/status` pages if
+the switch is on but the published deploy lacks `QLD_PUBLIC` (round 21).
 
 **Security posture.**
 
@@ -3742,7 +3937,10 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   secret scanning with push protection, actions pinned to commits,
   `minimumReleaseAge` a day. No open alerts at the baseline; one dismissed
   as tolerable risk (minimatch 10.2.6, development only; round 20, until
-  the import-x pin is lifted).
+  the import-x pin is lifted). CI runs `pnpm audit --prod` (round 21).
+- **Emergency rebuilds** (round 21): a build hook, "Emergency rebuild (env
+  change, QLD off)" on `main`, which `ignore` never cancels; its URL only
+  in Netlify's UI.
 - **Where it lives** (round 20): `Lyfe4/fuel-finder-au` and
   `https://fuel-finder-au.netlify.app`. The old `nsw-fuel-finder` name is
   held by a second site in the team that only answers a 301 to the same
@@ -3757,18 +3955,26 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   about 70 before that). A 503 when anything is wrong or calls pass 2,000.
   Since round 18 Queensland's problems page too: a failed or stalled run,
   a snapshot over 30 minutes old, site details over 24 hours, or more than
-  6,000 QLD calls in a Brisbane month (3,484 by 04:53 UTC on 19 November;
-  see the open items).
+  6,000 QLD calls in a Brisbane month (3,489 by 05:45 UTC on 19 November,
+  about 5,100 projected for November, about 4,560 in a full month after;
+  see the open items). Since round 21 also the switch on while the published
+  deploy cannot serve Queensland. API.NSW: 939 by 05:45 UTC on 19 November,
+  about 1,500 projected.
 - UptimeRobot on `/api/status` every 15 minutes, emailing the owner (two
-  monitors; the owner moves them to the new address after round 20, and
-  until then they reach it through the old name's 301).
+  monitors, about 5,900 function runs a month together; the owner moves
+  them to the new address after round 20, and until then they reach it
+  through the old name's 301).
+- Fixed function runs a month, before visitors: about 1,490 (NSW job) +
+  4,460 (Queensland job) + 5,900 (UptimeRobot), about 11,900 of the 125,000
+  (round 21).
 - Netlify's usage emails at 50, 75, 90 and 100% of each plan limit.
 - The API.NSW dashboard, the authority on the quota.
-- CI on every pull request: typecheck, lint, format, 1,038 tests, the build
-  and bundle budgets (JS, CSS and fonts); and `pnpm check:browser` (69
-  checks, including CSP, CLS at desktop and phone size, touch gestures on
-  the map, a tap on a price, and the card's actions on one row at four
-  phone widths) and `pnpm check:a11y` (50) against its deploy preview, about two
+- CI on every pull request: `pnpm audit --prod`, typecheck, lint, format,
+  1,072 tests, the build and bundle budgets (JS, CSS and fonts); and
+  `pnpm check:browser` (73 checks, including CSP, CLS at desktop and phone
+  size, touch gestures on the map, a tap on a price, the saving's ⓘ by
+  touch, and the card's actions on one row at four phone widths) and
+  `pnpm check:a11y` (50) against its deploy preview, about two
   minutes. Both required. The same checks by hand against production.
 - PageSpeed Insights, a results page: desktop 99, mobile 100, CLS 0, and
   100 for accessibility, best practices and SEO (19 November, after round
@@ -3796,10 +4002,13 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   so its own 120 a minute: with 40 deploys live on 29 October that was
   about 26 minutes, and the production deploys from before round 9 had no
   limit at all. The owner deleted 34 old deploys the same day, those among
-  them; 8 remain (production for rollback, and the previews of open pull
-  requests), so about 2 hours. Netlify deletes deploys after 30 days on
-  this plan (not adjustable); delete closed pull requests' previews and
-  all but the last few production deploys sooner. Netlify's own bot protection met paced
+  them. **Round 21 found 27 live again** (19 November, 12 of them
+  previews): about 39 minutes. Each round and each Dependabot pull request
+  adds deploys, so pruning is now the end-of-round routine
+  (`pnpm deploys:prune`, README): after it, about 5 remain (the published
+  deploy, three for a rollback, open pull requests' previews), so about
+  3.5 hours. Netlify deletes deploys after 30 days on this plan (not
+  adjustable). Netlify's own bot protection met paced
   bursts at about 600 a minute from one address (round 10), which may stop
   it sooner, and is not ours to rely on. The 50% usage email is the
   warning, at most hours ahead. Accepted: there is no per-address-only
@@ -3807,7 +4016,8 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
 - **Old deploys stay live for 30 days** with their own code, environment
   and rate-limit bucket, reading production's Blobs. Queensland is safe
   from them (the published-deploy gate and the kill switch), and NSW data
-  is public anyway; the cost above is the risk.
+  is public anyway; the cost above is the risk, kept down by
+  `pnpm deploys:prune` at the end of each round (round 21).
 - **Place suggestions are cached a day at the edge**, so a Queensland
   suburb can still be suggested for up to a day after Queensland is
   switched off; picking it is a 400. They are ABS data, not Queensland's.
@@ -3827,8 +4037,19 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
 - `callsite` shows an unknown licence (its Readme says MIT).
 - Product limits: NSW, the ACT and Queensland only, as fresh as retailers
   report plus up to 30 minutes (NSW) or 10 (Queensland, left out past 25),
-  "today" against our own snapshots, Queensland history only from 30
-  October 2026, ABS 2021 suburbs, the map needs WebGL.
+  "today" against our own snapshots, Queensland history only from 19
+  November 2026 (round 21), ABS 2021 suburbs, the map needs WebGL.
+- **Round 21 (audit 3), accepted:** two Queensland blips in a row page for
+  about 10 minutes, and a frozen upstream (runs succeed, prices never
+  change) is not detected for either state (A6); a tab left open in focus
+  never refetches, so it can show old Queensland prices with their "as of"
+  time (A7); Node 22's end of life on 30 April 2027, moving to Node 24 in
+  Q1 2027 (A9); Queensland's `stale` flag cannot be true while it is served
+  (A12); bundle budgets nearly full (initial CSS about 20 bytes, JS 1.7 kB
+  of headroom after round 21's ⓘ; A13).
+- **The kill switch needs a computer** (round 21, A5): Netlify's Blobs page
+  is documented as browse and download only. From a phone, the fastest off
+  is deleting `QLD_PUBLIC` and "Clear cache and deploy site" (README).
 - **Queensland's licence, read cautiously** (round 18): the Licensor has not
   answered which notice applies, what counts as metadata or what usage data
   it wants; both notices are shown everywhere, and usage data would be
@@ -3896,9 +4117,10 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   round 19's ordering change; that also ends the dismissed minimatch alert
   (round 20). Dependabot still offers 4.19 and later.
 - **Keep the old name's site** (`nsw-fuel-finder`, round 20): never delete
-  it, and leave it out of old-deploy clean-ups. Its files are in round 20
-  above (one `_redirects` rule and a one-line page); no repository, build
-  or functions.
+  it, and leave it out of old-deploy clean-ups (`pnpm deploys:prune`
+  refuses it). Its deploy holds a `netlify.toml` with one forced 301 rule
+  and a one-line `index.html` (round 21 corrected "`_redirects`"); no
+  repository, build or functions.
 - **When FuelCheck publishes October 2026** (not out on 29 October; likely
   mid-November): run `pnpm history:backfill --months 4 --upload`, after
   asking the owner, to fill 1–22 October. Until then the chart shows the gap
@@ -3920,5 +4142,43 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   known pair.
 - **Optional:** see our 429 on production once Netlify no longer challenges
   the test address; space bursts out and keep them short.
+- **Node 24 in Q1 2027** (round 21, A9): `.nvmrc`, `NODE_VERSION` in
+  `netlify.toml`, `@types/node` and Dependabot's ignore for it; before
+  Node 22's end of life on 30 April 2027.
+- **Optional:** ask the Licensor whether Queensland days recorded as a data
+  consumer (30 October to 18 November) may be shown; if yes in writing,
+  move `QLD_PUBLISHED_FROM` back (round 21, A3).
+- **End of every round:** `pnpm deploys:prune` (dry run), the owner approves
+  the list, then `--delete` (round 21, A2).
 - Then: watch the quota and Netlify's usage page; merge Dependabot's pull
   requests through CI; a backfill once a quarter if a longer chart is wanted.
+
+**Plan for a third state** (audit 3, Part B; no changes made in round 21).
+Before adding WA, SA, NT or TAS, in this order:
+
+1. **A source registry** (`SourceDefinition`: id, keys, time zone, run
+   interval, serve limit, gate, licence notices, status thresholds, display
+   name), with routes taking the set of sources they may serve instead of
+   `withQld: boolean`. Today about 640 lines in 22 server files name
+   Queensland, and a third state done the same way would thread a second
+   boolean through every layer.
+2. **A per-source gate and switch:** `SOURCES_PUBLIC` (or one variable per
+   source) and `config/sources/{id}` switches, with the round 21 "switch on
+   but cannot serve" check per source, instead of `QLD_PUBLIC` and
+   `config/qld-enabled` special cases.
+3. **`{source}/…` Blobs keys for every new state,** per-station history
+   included (Queensland's shares `history/v2/live/` today). NSW's unprefixed
+   keys stay as legacy, written down.
+4. **`/api/status` checks driven by each source's definition** (interval,
+   staleness, call budget, reference-data age), not a file per state.
+5. **Exposure and gate tests parameterised by the registry,** so each new
+   source gets the "nothing served while shut" matrix for free; plus a CI
+   run with the clock a year ahead to catch fixtures that rot.
+6. **The gazetteer split per state,** loaded only for the sources served
+   (about 0.5 MB for two states today; nationwide perhaps 1.5 MB parsed at
+   every cold start).
+
+Kept as they are: one scheduled job per source (isolated quotas, retries
+and lockouts; no orchestrator), the shared `runSource`, the frontend's
+structure, and Netlify, with a one-page exit plan (Cloudflare Workers with
+R2 or KV and Cron Triggers) worth writing before traffic grows.

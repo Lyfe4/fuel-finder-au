@@ -187,9 +187,11 @@ a tooltip under a pointer.
 | `Disclosure`     | chevron-right, turns down  | Every `<details>` summary (`<Summary>`), not the marker | Yes             |
 | `Back`           | arrow-left                 | Back to results                                         | Yes             |
 | `ArrowUp`/`Down` | arrow-up, arrow-down       | Today's move ("2.0 today")                              | Yes             |
+| `Info`           | info-circle                | Beside the saving, "What this saving means" (round 21)  | No              |
 
 **Icon alone only where everyone reads it the same way**: close, clear,
-zoom, search. Anything else keeps a short word beside it (Directions,
+zoom, search, and ⓘ for "more about this" (round 21, at the owner's
+request). Anything else keeps a short word beside it (Directions,
 Favourite), for clarity, for screen readers and speech input (the visible
 word is the name), and for translation. The legend's "Centre" ring is not
 an icon: it is drawn as the map draws the search origin, so the key matches
@@ -266,7 +268,17 @@ One line at the top of the docket. "19 stations" (the visible part of the
 `<h2>`; the rest, "within 5 km of postcode 2250", is visually hidden so the
 heading keeps its full name), and at the right "save **$3.02** on 50 L".
 The full sentence ("Cheapest 233.9, average 239.9 cents a litre. Filling 50
-litres…") is visually hidden. The time of the prices sits after the list
+litres…") is visually hidden. After the saving, an ⓘ (round 21): a button
+named "What this saving means" with `aria-expanded`, the icon at text size
+in the text's colour, its target about 42 px by padding and an equal
+negative margin (the line keeps its height). It shows "Filling 50 litres
+(about one tank) at the cheapest station here, instead of at the average
+price of the stations shown." in a box over the list, the docket's full
+width under the heading line: surface colour, a 1.5 px rule in the text's
+colour, 8 px padding, the summary's size. A tap, click, Enter or Space
+toggles it; a resting mouse shows it until it leaves; Escape or a press
+elsewhere closes it. Nothing moves when it opens. Not shown with "average
+…", when there is no saving. The time of the prices sits after the list
 ("Unleaded 91 prices as of 6:00 pm, from FuelCheck"). The stale-prices
 notice appears at the top only when prices are old.
 

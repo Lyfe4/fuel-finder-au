@@ -308,3 +308,97 @@ describe('each station', () => {
     );
   });
 });
+
+/*
+ * Round 21: an info button beside the saving explains it. A real button with
+ * aria-expanded, working by tap, click, hover and keyboard.
+ */
+describe('the saving explanation', () => {
+  const explanation =
+    'Filling 50 litres (about one tank) at the cheapest station here, instead of at the average price of the stations shown.';
+  const infoButton = () =>
+    within(results()).getByRole('button', { name: 'What this saving means' });
+
+  it('toggles by click or tap, and says whether it is open', async () => {
+    const { user } = setup();
+    await screen.findByRole('list', { name: 'Stations, cheapest first' });
+    const button = infoButton();
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(explanation)).not.toBeVisible();
+    expect(document.getElementById(button.getAttribute('aria-controls') ?? '')).toHaveTextContent(
+      explanation,
+    );
+
+    await user.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(explanation)).toBeVisible();
+    await expectNoAxeViolations(document.body);
+
+    await user.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(explanation)).not.toBeVisible();
+  });
+
+  it('opens with Enter or Space and closes with Escape, focus staying on the button', async () => {
+    const { user } = setup();
+    await screen.findByRole('list', { name: 'Stations, cheapest first' });
+    const button = infoButton();
+    button.focus();
+    await user.keyboard('{Enter}');
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await user.keyboard('{Escape}');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    await user.keyboard(' ');
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await user.keyboard('{Escape}');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveFocus();
+  });
+
+  it('closes on a press anywhere else, and not on a press on the explanation', async () => {
+    const { user } = setup();
+    await screen.findByRole('list', { name: 'Stations, cheapest first' });
+    const button = infoButton();
+    await user.click(button);
+    await user.click(screen.getByText(explanation));
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await user.click(screen.getByRole('heading', { level: 2 }));
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('shows while a mouse rests on it, and a click then keeps it open', async () => {
+    const { user } = setup();
+    await screen.findByRole('list', { name: 'Stations, cheapest first' });
+    const button = infoButton();
+    await user.hover(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await user.unhover(button);
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+
+    await user.hover(button);
+    await user.click(button);
+    await user.unhover(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await user.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('is not there when no saving is shown', async () => {
+    fakeApi({
+      location: () =>
+        json(
+          prices({
+            stations: [
+              station({ stationCode: '1', priceCents: 200.0 }),
+              station({ stationCode: '2', priceCents: 200.4 }),
+            ],
+          }),
+        ),
+    });
+    renderApp('/?query=Erina');
+    await screen.findByRole('list', { name: 'Stations, cheapest first' });
+    expect(
+      within(results()).queryByRole('button', { name: 'What this saving means' }),
+    ).not.toBeInTheDocument();
+  });
+});

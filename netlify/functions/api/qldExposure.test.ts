@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIXTURE_FETCHED_AT, fixtureSnapshot } from './__fixtures__/snapshot';
 import { createApiDeps, isQldPublic } from './deps';
 import { createHandler } from './router';
+import { QLD_SWITCHED_ON_BUT_SHUT } from './status';
 import { fakeQld, QLD_FIXTURE_AT } from '../../lib/__fixtures__/fakeQld';
 import { runQldSnapshot } from '../../lib/qld/run';
 import { KEYS, memoryStore, QLD_KEYS, type KeyValueStore } from '../../lib/store';
@@ -239,13 +240,27 @@ describe.each(SHUT)('with %s', (_label, gate) => {
     }
     expect(reads.filter((read) => read.includes('qld/') || read.includes('qld-')).sort()).toEqual(
       [
-        ...(readsSwitch(gate) ? [`getJSON ${QLD_KEYS.enabled}`] : []),
+        // Round 21: status also reads the switch on the published deploy when
+        // QLD_PUBLIC is off, to say so if the switch is on (A4).
+        ...(gate.published ? [`getJSON ${QLD_KEYS.enabled}`] : []),
         'getJSON qld/meta/calls/2026-10',
         'getJSON qld/meta/last-run',
         'getMetadata qld/reference/v1',
         'getMetadata qld/snapshot/v1/latest',
       ].sort(),
     );
+  });
+
+  it('/api/status pages only when the switch is on and this published deploy lacks QLD_PUBLIC', async () => {
+    const { get } = await seeded(gate);
+    const response = await get('/api/status');
+    const body = JSON.parse(response.text) as StatusResponse;
+    const intendedButShut =
+      gate.published &&
+      gate.env.QLD_PUBLIC !== 'true' &&
+      JSON.stringify(gate.killSwitch) === JSON.stringify(SWITCH_ON);
+    expect(body.problems.includes(QLD_SWITCHED_ON_BUT_SHUT)).toBe(intendedButShut);
+    expect(response.status).toBe(intendedButShut ? 503 : 200);
   });
 
   it('/api/status does not fail on a stalled QLD job while QLD is not public', async () => {

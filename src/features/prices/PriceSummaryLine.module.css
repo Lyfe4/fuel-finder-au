@@ -9,3 +9,27 @@
   font-size: var(--step-0);
   font-weight: var(--font-weight-heavy);
 }
+
+/*
+ * The saving's ⓘ (round 21), kept small: the initial CSS budget had 0.3 kB
+ * to spare. The icon at text size; padding makes the target about 42 px,
+ * and the equal negative margin gives that room back, so the line keeps its
+ * height and nothing moves.
+ */
+.info {
+  margin: calc(-1 * var(--space-3));
+  padding: var(--space-3);
+  border: 0;
+  background: none;
+}
+
+/* Over the list, under the heading line (.top in Results.module.css): opening it moves nothing. */
+.tip {
+  position: absolute;
+  z-index: 1;
+  inset: 100% 0 auto;
+  padding: var(--space-2);
+  border: var(--rule-width) solid;
+  background: var(--color-surface);
+  white-space: normal;
+}

@@ -496,7 +496,14 @@ describe('GET /api/history', () => {
       { kind: 'fuelcheck-monthly', from: '2026-09-29', through: '2026-09-30' },
       { kind: 'snapshots', from: '2026-10-20', through: '2026-10-20' },
     ]);
-    expect(result.licence).toContain('CC BY-SA');
+    // Per source (round 21, A8): CC BY-SA for FuelCheck's days only; API.NSW's terms for ours.
+    expect(result.licence).toBe(
+      'Daily low, high and last price. ' +
+        '2026-09-29 to 2026-09-30: adapted from NSW FuelCheck price history (NSW Fair Trading, ' +
+        'data.nsw.gov.au, CC BY-SA); these days are shared under CC BY-SA 4.0. ' +
+        '2026-10-20 to 2026-10-20: from our own snapshots of NSW FuelCheck prices, through the ' +
+        'API.NSW Fuel API, used under its terms.',
+    );
     expect(result.station.stationCode).toBe(station());
     expect(response.headers.get('Netlify-CDN-Cache-Control')).toContain('s-maxage=600');
   });
