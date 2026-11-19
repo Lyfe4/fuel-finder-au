@@ -18,6 +18,13 @@ updates:
       # round 19). Lift when a later version orders them as before.
       - dependency-name: 'eslint-plugin-import-x'
         versions: ['4.18.x']
+      # jsdom 31.0.1 (pull request #33, closed) failed 10 unit tests: accessible
+      # names that include VisuallyHidden text ("Favourite, Ampol Foodary
+      # Erina") were no longer found, while the real-browser checks passed.
+      # Ignored until the test setup is fixed (docs/decisions.md, Baseline
+      # open items); then remove this. 32 and later are still offered.
+      - dependency-name: 'jsdom'
+        versions: ['31.x']
 
     groups:
       dev-dependencies:
