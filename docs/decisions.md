@@ -3545,7 +3545,53 @@ loosen the rule: pinned at exactly 4.17.1, and Dependabot ignores 4.18.x.
 pin and the ignore in `.github/dependabot.yml`. The other eleven updates in
 the group went in.
 
-## 2026-10-25: Baseline (updated 19 November, round 18)
+## 2026-11-19: Round 20 (renamed to fuel-finder-au)
+
+The site covers NSW, the ACT and Queensland and will grow, so nothing should
+say "NSW Fuel Finder" or depend on `nsw-fuel-finder` any more. The owner
+chose `fuel-finder-au` for the repository (`Lyfe4/fuel-finder-au`), the
+Netlify site (`fuel-finder-au.netlify.app`) and the package. The product
+name stays "Fuel Finder".
+
+**The old address stops working, accepted.** A renamed Netlify subdomain
+does not redirect: `nsw-fuel-finder.netlify.app` answers Netlify's "Not
+Found" from the rename on, so shared links and search results to it break.
+qld-plan.md 6.2 had recommended a custom domain instead, for its redirect;
+the owner chose the rename. GitHub does redirect the old repository's web,
+git and API addresses, until a repository of the old name is created.
+
+**What changed:** the package name; the README's links; the default address
+in `vite.config.ts` (used only when Netlify's `URL` is not set, so locally
+and in CI) and in the scripts (`check:browser`, `check:a11y`,
+`screenshots`, `serve-with-headers`); the design brief; qld-plan.md 6.2.
+
+**What did not need to:** the canonical and Open Graph URLs come from
+Netlify's `URL` at build (round 7), so they follow the rename at the first
+build after it. CI finds the deploy preview from Netlify's commit status
+`netlify/<site>/deploy-preview`, reading the site name from it (round 9),
+and the ruleset requires its two checks by job name, not by site. The
+site id, its environment variables, the Blobs store and the scheduled
+jobs belong to the site id, not its name. The screenshots and social card
+show no address.
+
+**Left as history:** the earlier rounds above name `nsw-fuel-finder` where
+that was the name at the time (rulesets read from
+`repos/Lyfe4/nsw-fuel-finder`, the status context, UptimeRobot's address,
+round 18's "names unchanged"); they stay as written.
+
+### Library and platform behaviour this relies on
+
+- **Netlify `URL`** is the site's primary address at build time; a deploy
+  built before the rename keeps the old address in its canonical and
+  Open Graph tags, so production is only right after a build that follows
+  the rename (this round's merge).
+- **Netlify subdomain rename:** no redirect from the old name, and the old
+  name is free for any Netlify user to claim. Deploy permalinks and preview
+  aliases move to `<id>--fuel-finder-au`.
+- **GitHub repository rename:** redirects the old URLs; rulesets, secrets,
+  Dependabot and Actions move with the repository. The Netlify GitHub App
+  installation follows the repository by id; checked after the rename by a
+  push that builds a deploy preview. (updated 19 November, round 18)
 
 The project as of round 18 (Queensland public; first written for round 10's
 `d6dc135`, updated for rounds 11 to 17). Future work

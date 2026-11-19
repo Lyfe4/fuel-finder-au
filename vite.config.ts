@@ -19,7 +19,7 @@ const srcPath = fileURLToPath(new URL('./src', import.meta.url));
 export const SITE_URL = (
   process.env.SITE_URL ??
   process.env.URL ??
-  'https://nsw-fuel-finder.netlify.app'
+  'https://fuel-finder-au.netlify.app'
 ).replace(/\/$/, '');
 
 /** Fills %SITE_URL% in index.html. */

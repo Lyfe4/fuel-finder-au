@@ -32,7 +32,7 @@ import { preview } from 'vite';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const FIXTURES = join(ROOT, 'scripts/screenshots/fixtures');
 const OUT = join(ROOT, 'docs/screenshots');
-const PRODUCTION = 'https://nsw-fuel-finder.netlify.app';
+const PRODUCTION = 'https://fuel-finder-au.netlify.app';
 
 /**
  * The scene: a Central Coast search, its cheapest station, three favourites.

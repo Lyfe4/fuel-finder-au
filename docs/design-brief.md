@@ -89,7 +89,7 @@ Your current map is OpenFreeMap Positron/Dark — a custom MapLibre style (muted
 Copy everything inside the block below.
 
 ```text
-We're redesigning the visual layer of this app (NSW Fuel Finder: live fuel prices, cheapest first, list + MapLibre map + per-station price history). The design brief with references is at docs/design-brief.md — read it first.
+We're redesigning the visual layer of this app (Fuel Finder: live fuel prices, cheapest first, list + MapLibre map + per-station price history). The design brief with references is at docs/design-brief.md — read it first.
 
 GOAL
 A high-end, distinctive interface with a clear point of view. It must not look AI-generated or templated. Someone should be able to recognise it from a cropped screenshot.

@@ -4,7 +4,7 @@ Live fuel prices for New South Wales, the ACT and Queensland, cheapest first
 for the fuel you use, on a list and a map, with daily price history (four
 months for NSW and the ACT; Queensland's since 30 October 2026).
 
-**[nsw-fuel-finder.netlify.app](https://nsw-fuel-finder.netlify.app)**
+**[fuel-finder-au.netlify.app](https://fuel-finder-au.netlify.app)**
 
 <p>
   <img src="docs/screenshots/desktop-light-results.png" alt="The results for postcode 2250: nineteen stations cheapest first, one open with its directions, beside a map of their prices." width="66%" />
@@ -304,7 +304,7 @@ against `pnpm serve:headers`, a preview or production.
 - **If `check:browser` says Netlify's badge is back**, the policy is blocking
   it: decide whether to allow it again (docs/decisions.md, round 9).
 - **UptimeRobot** checks
-  [`/api/status`](https://nsw-fuel-finder.netlify.app/api/status) every 15
+  [`/api/status`](https://fuel-finder-au.netlify.app/api/status) every 15
   minutes and emails the owner when it is not 200: the site is down, or the
   status is a 503 (a stalled or failing snapshot job, the lockout guard
   stopped, or more than 2,000 API.NSW calls this month; and, while
@@ -330,7 +330,7 @@ map is shown, your browser fetches tiles from OpenFreeMap, which sees your
 internet address and the area on screen; nothing is fetched from it before
 then. Directions open Apple or Google Maps with the station as the
 destination, and your position is not passed on. The same note is on the
-site at [/privacy.html](https://nsw-fuel-finder.netlify.app/privacy.html).
+site at [/privacy.html](https://fuel-finder-au.netlify.app/privacy.html).
 
 ## Data and licences
 
