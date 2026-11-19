@@ -3615,10 +3615,34 @@ deploy, under the new name, until the fix merged.
 - **GitHub repository rename:** redirects the old URLs; rulesets, secrets,
   Dependabot and Actions move with the repository. The Netlify GitHub App
   installation follows the repository by id; checked after the rename by a
-  push that builds a deploy preview. (updated 19 November, round 18)
+  push that builds a deploy preview: it did (deploy preview 34, built from
+  `Lyfe4/fuel-finder-au`), although Netlify's settings still showed the old
+  repository name.
 
-The project as of round 18 (Queensland public; first written for round 10's
-`d6dc135`, updated for rounds 11 to 17). Future work
+### Verified after the merge
+
+The fix merged as `1d7b540` at 04:46:01 UTC and was published at 04:46:47,
+the first build under the new name.
+
+- Canonical, `og:url` and `og:image` on `https://fuel-finder-au.netlify.app/`.
+- `pnpm check:browser` 69 of 69 and `pnpm check:a11y` 50 of 50 against the
+  new address.
+- `/api/status` healthy for NSW and Queensland; the jobs kept running
+  through both renames (Queensland at 04:23, 04:33, 04:43 and 04:53, all
+  ok; NSW at 04:30 and 05:00).
+- The old address: `/`, a deep path, `/api/status` and a search with a query
+  string all 301 to the same place on the new one.
+- PageSpeed Insights on the Tweed Heads results page: mobile 100, 100, 100,
+  100 (LCP 1.7 s, TBT 0, CLS 0); desktop 99, 100, 100, 100 (LCP 0.6 s,
+  CLS 0).
+- Queensland's first hour on round 19's schedule (03:07 to 04:07 UTC): 6
+  runs, 0 failures, 6 calls, no retries.
+
+## 2026-10-25: Baseline (updated 19 November, round 20)
+
+The project as of round 20 (renamed `fuel-finder-au`; Queensland public
+since round 18; first written for round 10's `d6dc135`, updated for rounds
+11 to 19). Future work
 starts from here; this entry is the summary, and the rounds above have the
 reasons.
 
@@ -3657,8 +3681,9 @@ capitals kept. `docs/design-system.md` is the source of truth for the look.
 minutes (about 1,500 API.NSW calls a month against 2,500) into Netlify
 Blobs, and folds a slice of history each run. The `/api` function answers
 from Blobs only. Visitors never reach API.NSW. A second job fetches
-Queensland's prices every 10 minutes into `qld/` keys (round 15), with a
-Data Publisher Token since round 18, and its site details every 22 hours.
+Queensland's prices every 10 minutes into `qld/` keys (round 15), at :03,
+:13 … :53 and never retried (round 19), with a Data Publisher Token since
+round 18, and its site details every 22 hours.
 The API serves them only through three gates (`QLD_PUBLIC`, the published
 deploy, the owner's kill switch in Blobs; all open since 19 November) and
 never when over 25 minutes old (round 16). The README has the off
@@ -3691,8 +3716,13 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   pushes, no bypass), squash
   merges, Dependabot alerts and updates, private vulnerability reporting,
   secret scanning with push protection, actions pinned to commits,
-  `minimumReleaseAge` a day. No open alerts or pull requests at the
-  baseline.
+  `minimumReleaseAge` a day. One open alert at the baseline: minimatch
+  below 11.0.1 (moderate, development only, opened 19 November), fixed in
+  its own pull request after round 20.
+- **Where it lives** (round 20): `Lyfe4/fuel-finder-au` and
+  `https://fuel-finder-au.netlify.app`. The old `nsw-fuel-finder` name is
+  held by a second site in the team that only answers a 301 to the same
+  path on the new address, so nobody else can claim it.
 - No cookies, analytics or tracking; position rounded to about 1 km and never
   stored; privacy note at `/privacy.html`.
 
@@ -3703,9 +3733,11 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   about 70 before that). A 503 when anything is wrong or calls pass 2,000.
   Since round 18 Queensland's problems page too: a failed or stalled run,
   a snapshot over 30 minutes old, site details over 24 hours, or more than
-  6,000 QLD calls in a Brisbane month (3,408 by 19 November; see the open
-  items).
-- UptimeRobot on `/api/status` every 15 minutes, emailing the owner.
+  6,000 QLD calls in a Brisbane month (3,484 by 04:53 UTC on 19 November;
+  see the open items).
+- UptimeRobot on `/api/status` every 15 minutes, emailing the owner (two
+  monitors; the owner moves them to the new address after round 20, and
+  until then they reach it through the old name's 301).
 - Netlify's usage emails at 50, 75, 90 and 100% of each plan limit.
 - The API.NSW dashboard, the authority on the quota.
 - CI on every pull request: typecheck, lint, format, 1,038 tests, the build
@@ -3714,10 +3746,9 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
   the map, a tap on a price, and the card's actions on one row at four
   phone widths) and `pnpm check:a11y` (50) against its deploy preview, about two
   minutes. Both required. The same checks by hand against production.
-- PageSpeed Insights, a results page: desktop 99, mobile 99, CLS 0, and
+- PageSpeed Insights, a results page: desktop 99, mobile 100, CLS 0, and
   100 for accessibility, best practices and SEO (19 November, after round
-  18, a Tweed Heads search with both states; 100 and 100 on 4 November
-  for an NSW-only page).
+  20, a Tweed Heads search with both states; 99 and 99 after round 18).
   The desktop machine has no GPU, so it measures the "Show the map" page:
   the page a GPU-less visitor gets, not the map drawn faster. Visitors with
   a GPU see what they saw before (round 11).
@@ -3829,13 +3860,18 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
 **Open maintenance items.**
 
 - **Queensland's failure rate** (round 19): the job now runs at :03, :13 …
-  and is never retried. Recount the failures and the month's calls after a
-  week (`netlify logs --function snapshot-qld`, `qld/meta/calls/YYYY-MM`).
+  and is never retried. Its first hour: 6 runs, 0 failures, 6 calls.
+  Recount the failures and the month's calls after a week (`netlify logs
+--function snapshot-qld`, `qld/meta/calls/YYYY-MM`).
 - **Queensland site details on the new token:** first refresh due about
   11:50 UTC on 19 November; if refused, the job stops and `/api/status`
   pages.
-- **Phase 2, Queensland history** from data.qld.gov.au (docs/qld-plan.md 5),
-  and the optional repository rename and custom domain (6.2).
+- **Phase 2, Queensland history** from data.qld.gov.au (docs/qld-plan.md 5).
+  A custom domain stays optional (6.2); the rename itself is done (round 20).
+- **Keep the old name's site** (`nsw-fuel-finder`, round 20): never delete
+  it, and leave it out of old-deploy clean-ups. Its files are in round 20
+  above (one `_redirects` rule and a one-line page); no repository, build
+  or functions.
 - **When FuelCheck publishes October 2026** (not out on 29 October; likely
   mid-November): run `pnpm history:backfill --months 4 --upload`, after
   asking the owner, to fill 1–22 October. Until then the chart shows the gap
