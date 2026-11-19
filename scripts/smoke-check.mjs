@@ -10,7 +10,7 @@
  * Point it at `netlify dev` (the default) or at production:
  *
  *   pnpm check:browser
- *   pnpm check:browser https://nsw-fuel-finder.netlify.app
+ *   pnpm check:browser https://fuel-finder-au.netlify.app
  *
  * It makes no API.NSW calls: the site answers from its snapshot. Against
  * production it costs a few function invocations and some OpenFreeMap tiles.

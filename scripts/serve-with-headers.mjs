@@ -19,7 +19,7 @@ import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
 
-const PROD = 'https://nsw-fuel-finder.netlify.app';
+const PROD = 'https://fuel-finder-au.netlify.app';
 const toml = readFileSync('netlify.toml', 'utf8');
 const headers = {};
 const block = /for = "\/\*"\s*\[headers\.values\]([\s\S]*?)(?:\n\s*\n|\[\[)/.exec(toml)?.[1] ?? '';

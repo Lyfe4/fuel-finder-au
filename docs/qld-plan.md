@@ -852,6 +852,13 @@ is left for 1c: the masthead, the footer, `index.html`, the manifest,
   URLs follow at the next build (round 7 made them domain-aware).
 - Doing either before QLD is public would advertise a state we do not serve.
 
+**Done in round 20 (19 November 2026), differently.** The owner chose
+`fuel-finder-au` for both, since the site covers three areas and will grow:
+the repository is `Lyfe4/fuel-finder-au` and the site
+`fuel-finder-au.netlify.app`. The owner accepted that the old `netlify.app`
+address stops working (no redirect) rather than adding a custom domain.
+The package name followed. See docs/decisions.md, round 20.
+
 ---
 
 ## 7. Phased build plan

@@ -6,7 +6,7 @@
  * Like smoke-check.mjs it needs a running site, so it is not part of CI:
  *
  *   pnpm check:a11y
- *   pnpm check:a11y https://nsw-fuel-finder.netlify.app
+ *   pnpm check:a11y https://fuel-finder-au.netlify.app
  *
  * It makes no API.NSW calls. Screenshots of every width and theme go to a
  * temporary folder, printed at the end, for a person to look over.
