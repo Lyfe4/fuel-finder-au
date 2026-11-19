@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { REFERENCE_REFRESH_MS, runQldSnapshot } from './run';
+import { qldRunResponse, REFERENCE_REFRESH_MS, runQldSnapshot } from './run';
+import { config as nswConfig } from '../../functions/snapshot/snapshot';
 import { config } from '../../functions/snapshot-qld/snapshot-qld';
 import { fakeQld, QLD_FIXTURE_AT, qldSites } from '../__fixtures__/fakeQld';
 import { fakeUpstream, jsonResponse } from '../__fixtures__/fakeUpstream';
@@ -21,8 +22,57 @@ afterEach(() => {
 const MINUTE = 60_000;
 
 describe('the QLD schedule', () => {
+  const [minuteField, ...rest] = config.schedule.split(' ');
+  const minutes = (minuteField ?? '').split(',').map(Number);
+
   it('runs as often as the staleness rules and the licence assume', () => {
-    expect(config.schedule).toBe(`*/${String(QLD_SNAPSHOT_INTERVAL_MINUTES)} * * * *`);
+    expect(rest).toEqual(['*', '*', '*', '*']);
+    expect(minutes).toHaveLength(60 / QLD_SNAPSHOT_INTERVAL_MINUTES);
+    minutes.forEach((minute, i) => {
+      expect(minute - (minutes[i - 1] ?? minute - QLD_SNAPSHOT_INTERVAL_MINUTES)).toBe(
+        QLD_SNAPSHOT_INTERVAL_MINUTES,
+      );
+    });
+  });
+
+  it('keeps off the hour and half hour, the NSW job’s minutes (round 18)', () => {
+    const nsw = (nswConfig.schedule.split(' ')[0] ?? '').replace('*/', '');
+    const nswMinutes = Array.from({ length: 60 / Number(nsw) }, (_, i) => i * Number(nsw));
+    expect(nswMinutes).toEqual([0, 30]);
+    for (const minute of minutes) {
+      expect(nswMinutes).not.toContain(minute);
+      expect(minute % 10).not.toBe(0);
+    }
+  });
+});
+
+describe('qldRunResponse (round 18)', () => {
+  it('never asks Netlify to retry: 200 for a blip, a refusal or a success', async () => {
+    for (const summary of [
+      { ok: false, error: { kind: 'timeout' } },
+      { ok: false, error: { kind: 'bad_response' } },
+      { ok: false, error: { kind: 'credentials_rejected' } },
+      { ok: true },
+    ]) {
+      const response = qldRunResponse(summary);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual(summary);
+    }
+  });
+
+  it('leaves the refused-token guard as it was: the next run makes no call', async () => {
+    const { store } = memoryStore();
+    await runQldSnapshot(fakeQld({}, store).deps);
+    const refused = fakeQld({ prices: [() => new Response('', { status: 401 })] }, store);
+    refused.advance(10 * MINUTE);
+    expect(await runQldSnapshot(refused.deps)).toMatchObject({
+      ok: false,
+      error: { kind: 'credentials_rejected' },
+    });
+    const next = fakeQld({}, store);
+    next.advance(20 * MINUTE);
+    expect(await runQldSnapshot(next.deps)).toMatchObject({ ok: false });
+    expect(next.calls).toHaveLength(0);
   });
 });
 

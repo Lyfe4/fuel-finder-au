@@ -29,6 +29,12 @@ export const QLD_MONTHLY_ALERT = 6_000;
  */
 const REFERENCE_MAX_AGE_MS = 24 * 60 * 60_000;
 
+/** Failures the next run can fix on its own: a blip on the Aggregator's side. */
+const TRANSIENT = new Set(['timeout', 'bad_response', 'unavailable']);
+
+/** Two scheduled intervals: the newest snapshot is older only after two failed runs. */
+const TWO_RUNS_MS = 2 * QLD_SNAPSHOT_INTERVAL_MINUTES * 60_000;
+
 const lastRunSchema = z.object({
   ok: z.boolean(),
   startedAt: z.string(),
@@ -74,7 +80,21 @@ export function qldStatusReport(
     const text = 'No scheduled run has been recorded.';
     problems.push({ full: text, general: text });
   } else {
-    if (!lastRun.ok) {
+    /*
+     * Round 18: a blip is no longer retried, so one failed run stays the
+     * last for 10 minutes; at about one run in five that would page the
+     * owner every few hours for nothing. A blip counts once a second run in
+     * a row has failed (the newest snapshot is then over two intervals
+     * old), which is when visitors are about to lose Queensland (25
+     * minutes). Every other kind (a refused token, a bad answer we cannot
+     * use, our own bug) counts at once.
+     */
+    const blip = TRANSIENT.has(lastRun.error?.kind ?? '');
+    const writtenAt = writtenSchema.safeParse(input.written);
+    const sinceWritten = writtenAt.success
+      ? now - Date.parse(writtenAt.data.fetchedAt)
+      : Number.POSITIVE_INFINITY;
+    if (!lastRun.ok && (!blip || sinceWritten > TWO_RUNS_MS)) {
       problems.push({
         full: `The last scheduled run failed (${lastRun.error?.kind ?? 'unknown'}).`,
         general: 'The last scheduled run failed.',

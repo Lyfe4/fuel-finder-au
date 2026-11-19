@@ -212,7 +212,9 @@ The manual lists 200, 400 (bad parameter), 401 (unknown token), 403 (API
   (`qld/auth/failure`). No unknown-outcome counting is needed: there is no
   token exchange, so a timeout cannot be a hidden refusal.
 - 500, timeouts and a `null` or malformed body are retryable (502 from the
-  function, so Netlify retries once), as for NSW.
+  function, so Netlify retries once), as for NSW. **Changed in round 19:**
+  they failed about one run in five, so the job now always returns 200 and
+  leaves them to the next run, 10 minutes later, at :03, :13 … (docs/decisions.md).
 - **The manual reserves the right to add and reorder fields** ("non-breaking"
   changes). Zod's default `z.object` strips unknown keys, so new fields are
   ignored; order never mattered to JSON parsing. Required fields must stay

@@ -55,6 +55,40 @@ describe('qldStatusReport', () => {
     ]);
   });
 
+  describe('a failed run, now that blips are not retried (round 18)', () => {
+    const failed = (kind: string, writtenMinutesAgo: number) =>
+      qldStatusReport(
+        {
+          ...healthy,
+          lastRun: { ok: false, startedAt: '2026-11-02T02:53:00Z', error: { kind, message: 'x' } },
+          written: {
+            fetchedAt: new Date(NOW - writtenMinutesAgo * 60_000).toISOString(),
+            stationCount: 1785,
+          },
+        },
+        NOW,
+        true,
+      );
+
+    it('one blip is not a problem: the next run, 10 minutes on, will try again', () => {
+      for (const kind of ['timeout', 'bad_response', 'unavailable']) {
+        expect(failed(kind, 17).problems).toEqual([]);
+        expect(failed(kind, 17).healthy).toBe(true);
+      }
+    });
+
+    it('two in a row are: Queensland is about to be left out', () => {
+      expect(failed('timeout', 21).problems).toEqual(['The last scheduled run failed (timeout).']);
+    });
+
+    it('a refused token or anything else counts at once', () => {
+      expect(failed('credentials_rejected', 7).problems).toEqual([
+        'The last scheduled run failed (credentials_rejected).',
+      ]);
+      expect(failed('internal', 7).healthy).toBe(false);
+    });
+  });
+
   it('reports site details from just past the licence’s 24 hours (round 18)', () => {
     const problemsAt = (hours: number) =>
       qldStatusReport(

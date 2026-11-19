@@ -3485,6 +3485,53 @@ succeeds, and the 25-minute rule covers the rest). Suggested, not built: run
 the job off the hour (`3-59/10`), and recount after a week. In the
 Baseline's open items.
 
+## 2026-11-19: Round 19 (Queensland's job, more reliably)
+
+Round 18 found the Queensland job failing about one run in five (timeouts
+and empty bodies, mostly at :00 and :30), each failure followed by
+Netlify's retry: about 740 extra calls in November's first 18 days, near
+the 6,000 a month at which `/api/status` pages the owner.
+
+### Off the busy minutes
+
+`snapshot-qld` runs at :03, :13, :23, :33, :43 and :53 (was `*/10`): off
+the hour and half hour, when the Aggregator is presumably busiest with
+other subscribers' jobs, and never at the same minute as the NSW job (:00,
+:30). Still every 10 minutes, so the 2.3 arithmetic (round 18) is
+unchanged. An explicit list rather than `3-59/10`, so nothing depends on
+how Netlify's cron reads a stepped range. A test holds both rules.
+
+### Never retried
+
+The job always answers Netlify 200 (`qldRunResponse`), so a failed run is
+left to the next one, 10 minutes later. NSW keeps its retry: its runs are
+30 minutes apart and its quota is the tight one.
+
+- **What it saves:** every retry's call, and Netlify's re-run within
+  seconds of an Aggregator already struggling.
+- **What it costs:** a failure leaves the snapshot 10 minutes older (still
+  served: under 25 minutes). **Two in a row hide Queensland** from 25
+  minutes after the last good run until the next success (at most about 5
+  minutes, plus the caches' 3, if the third run works), with the
+  "unavailable" notice. A retry seconds later would often have avoided
+  that. At the observed rate, two failures in a row may happen a few
+  times a day, mostly at the same busy minutes the new schedule avoids.
+- **Unchanged:** a 401 or 403 still writes the guard record and stops
+  every later run until `pnpm auth:reset --source qld` (tested again).
+
+### Paging only when it matters
+
+With no retry, a failed run stays the last for 10 minutes, and at about
+one in five that would have made `/api/status` a 503 (and emailed the
+owner) every few hours for nothing. A blip (`timeout`, `bad_response`,
+`unavailable`) is now a problem only when the newest snapshot is over two
+intervals old, that is after a second failure in a row, when Queensland is
+about to be left out. Anything else (a refused token, our own bug) still
+counts at once, and a snapshot over 30 minutes old always does.
+
+Also: `netlify.toml`'s comment on `QLD_PUBLIC` no longer says it stays
+unset.
+
 ## 2026-10-25: Baseline (updated 19 November, round 18)
 
 The project as of round 18 (Queensland public; first written for round 10's
@@ -3698,17 +3745,12 @@ procedure: switch, then `QLD_PUBLIC`, then the job.
 
 **Open maintenance items.**
 
-- **Queensland's failed runs** (round 18): about 740 extra runs and calls
-  this November from Netlify's retries after timeouts and empty bodies,
-  mostly at :00 and :30; about 5,500 a month at this rate against the
-  6,000 that pages. Suggested: schedule `snapshot-qld` off the hour
-  (`3-59/10 * * * *`), then recount after a week.
+- **Queensland's failure rate** (round 19): the job now runs at :03, :13 …
+  and is never retried. Recount the failures and the month's calls after a
+  week (`netlify logs --function snapshot-qld`, `qld/meta/calls/YYYY-MM`).
 - **Queensland site details on the new token:** first refresh due about
   11:50 UTC on 19 November; if refused, the job stops and `/api/status`
   pages.
-- **A stale comment:** `netlify.toml`'s environment note says `QLD_PUBLIC`
-  "stays unset"; fix with the next code change (a `netlify.toml` change
-  deploys).
 - **Phase 2, Queensland history** from data.qld.gov.au (docs/qld-plan.md 5),
   and the optional repository rename and custom domain (6.2).
 - **When FuelCheck publishes October 2026** (not out on 29 October; likely
