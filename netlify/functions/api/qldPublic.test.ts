@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureSnapshot } from './__fixtures__/snapshot';
 import { createApiDeps } from './deps';
 import { createHandler } from './router';
+import { QLD_SWITCHED_ON_BUT_SHUT } from './status';
 import { qldCopyNotice, qldDataNotice, qldPriceNotices } from '../../../shared/api';
 import { fakeQld, QLD_FIXTURE_AT } from '../../lib/__fixtures__/fakeQld';
 import { runQldSnapshot } from '../../lib/qld/run';
@@ -103,6 +104,17 @@ async function api(
 
 const codes = (body: PricesResponse) => body.stations.map((s) => s.stationCode);
 
+/** Re-dates the Queensland snapshot the fake job wrote, as if it ran at `at`. */
+async function moveQldSnapshotTo(store: KeyValueStore, at: number) {
+  const snapshot = (await store.getJSON(QLD_KEYS.snapshot, 'strong')) as Snapshot;
+  const fetchedAt = new Date(at).toISOString();
+  await store.setJSON(
+    QLD_KEYS.snapshot,
+    { ...snapshot, fetchedAt },
+    { fetchedAt, stationCount: snapshot.stations.length },
+  );
+}
+
 describe('searches with Queensland public', () => {
   it('lists both sides of the border in one answer, each source with its own time', async () => {
     const { get } = await api();
@@ -168,15 +180,43 @@ describe('searches with Queensland public', () => {
   });
 
   it('works out "since yesterday" from Queensland’s own Brisbane day', async () => {
-    const { get, store } = await api();
-    // The QLD snapshot is 10:48 on 29 October in Brisbane: yesterday is the 28th.
-    await store.setJSON(QLD_KEYS.historyDay('2026-10-28'), {
+    // 10:48 on 20 November in Brisbane: yesterday is the 19th.
+    const at = Date.UTC(2026, 10, 20, 0, 48);
+    const { get, store } = await api({ now: () => at + 60_000 });
+    await moveQldSnapshotTo(store, at);
+    await store.setJSON(QLD_KEYS.historyDay('2026-11-19'), {
       version: 1,
-      day: '2026-10-28',
+      day: '2026-11-19',
       fuels: { U91: { 'qld-61000001': [239.9, 241.9, 241.9] } },
     });
     const { body } = await get<PricesResponse>('/api/location?query=4225&fuel=U91');
     expect(body.stations.find((s) => s.stationCode === 'qld-61000001')?.changeCents).toBe(-2);
+  });
+
+  /*
+   * Round 21 (audit 3, A3): days recorded before the owner became a data
+   * publisher (19 November) stay stored but are never served, not even as
+   * the "yesterday" behind a move today.
+   */
+  it.each([
+    ['29 October (consumer days only)', Date.UTC(2026, 9, 29, 0, 48), '2026-10-28'],
+    [
+      '19 November (yesterday was still a consumer day)',
+      Date.UTC(2026, 10, 19, 0, 48),
+      '2026-11-18',
+    ],
+  ])('gives no move today on %s', async (_label, at, yesterday) => {
+    const { get, store } = await api({ now: () => at + 60_000 });
+    await moveQldSnapshotTo(store, at);
+    await store.setJSON(QLD_KEYS.historyDay(yesterday), {
+      version: 1,
+      day: yesterday,
+      fuels: { U91: { 'qld-61000001': [239.9, 241.9, 241.9] } },
+    });
+    const { body } = await get<PricesResponse>('/api/location?query=4225&fuel=U91');
+    const station = body.stations.find((s) => s.stationCode === 'qld-61000001');
+    expect(station).toBeDefined();
+    expect(station?.changeCents).toBeNull();
   });
 });
 
@@ -234,20 +274,36 @@ describe('stations and history by Queensland code', () => {
   });
 
   it('serves a Queensland station’s history with Queensland’s licence notice', async () => {
-    const { get, store } = await api();
+    const at = Date.UTC(2026, 10, 21, 0, 48);
+    const { get, store } = await api({ now: () => at + 60_000 });
+    await moveQldSnapshotTo(store, at);
     await store.setJSON(KEYS.historyLive('qld-61000001'), {
       version: 2,
       code: 'qld-61000001',
       source: 'snapshots',
-      from: '2026-10-28',
-      through: '2026-10-28',
-      fuels: { U91: [['2026-10-28', 239.9, 241.9, 241.9]] },
+      from: '2026-10-30',
+      through: '2026-11-20',
+      fuels: {
+        U91: [
+          ['2026-10-30', 230.9, 231.9, 231.9],
+          ['2026-11-18', 235.9, 236.9, 236.9],
+          ['2026-11-19', 238.9, 239.9, 239.9],
+          ['2026-11-20', 239.9, 241.9, 241.9],
+        ],
+      },
     });
     const { status, body } = await get<HistoryResponse>(
       '/api/history?station=qld-61000001&fuel=U91',
     );
     expect(status).toBe(200);
-    expect(body.days).toEqual([['2026-10-28', 239.9, 241.9, 241.9]]);
+    // Round 21 (A3): only from 19 November, the day the owner became a publisher.
+    expect(body.days).toEqual([
+      ['2026-11-19', 238.9, 239.9, 239.9],
+      ['2026-11-20', 239.9, 241.9, 241.9],
+    ]);
+    expect(body.sources).toEqual([
+      { kind: 'snapshots', from: '2026-11-19', through: '2026-11-20' },
+    ]);
     // Both notices and the prohibition (round 18): the view shows today's prices too.
     expect(body.licence).toContain(qldDataNotice(2026));
     expect(body.licence).toContain(qldCopyNotice(2026));
@@ -310,6 +366,35 @@ describe('the gate', () => {
     expect((await get('/api/location?query=4225&fuel=U91')).status).toBe(400);
     const status = await get<StatusResponse>('/api/status');
     expect(status.body.sources.qld.public).toBe(false);
+  });
+
+  /*
+   * Round 21 (audit 3, A4): the switch on but QLD_PUBLIC lost from the
+   * published deploy is the one shut gate nobody meant, so it pages.
+   */
+  it.each<[string, Parameters<typeof api>[0], boolean]>([
+    ['the switch on, QLD_PUBLIC unset, the published deploy', { env: {} }, true],
+    [
+      'the switch on, QLD_PUBLIC "false", the published deploy',
+      { env: { QLD_PUBLIC: 'false' } },
+      true,
+    ],
+    ['the switch on, QLD_PUBLIC unset, a preview', { env: {}, published: false }, false],
+    [
+      'the switch off, QLD_PUBLIC unset',
+      { env: {}, killSwitch: { ...SWITCH_ON, enabled: false } },
+      false,
+    ],
+    ['no switch record, QLD_PUBLIC unset', { env: {}, killSwitch: undefined }, false],
+    ['the switch off, QLD_PUBLIC "true"', { killSwitch: { ...SWITCH_ON, enabled: false } }, false],
+    ['all three open', {}, false],
+  ])('/api/status with %s: pages %s', async (_label, options, pages) => {
+    const { get } = await api(options);
+    const { status, body } = await get<StatusResponse>('/api/status');
+    expect(body.problems.includes(QLD_SWITCHED_ON_BUT_SHUT)).toBe(pages);
+    // This fixture has no NSW run record, so other problems are there too;
+    // the mismatch alone is enough to page (exposure tests check 200 without it).
+    if (pages) expect(status).toBe(503);
   });
 
   it('treats an unreadable kill switch as off', async () => {

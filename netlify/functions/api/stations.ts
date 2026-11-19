@@ -3,16 +3,16 @@ import { MAX_STATION_CODES, qldPriceNotices, stationSource } from '../../../shar
 import { FUEL_TYPE_CODES, type FuelTypeCode } from '../../../shared/fuelTypes';
 import {
   addDays,
-  HISTORY_LICENCE,
   HISTORY_WINDOW_DAYS,
   mergeHistory,
+  nswHistoryLicence,
   stationHistorySchema,
 } from '../../lib/history/stationHistory';
 import { mendAddressCase } from '../../lib/places/addressCase';
+import { QLD_PUBLISHED_FROM, type Snapshot, type SnapshotStation } from '../../lib/snapshot/format';
 import { brisbaneDay, sydneyDay } from '../../lib/upstream/time';
 
 import type { HistoryResponse, StationSummary, StationsResponse } from '../../../shared/api';
-import type { Snapshot, SnapshotStation } from '../../lib/snapshot/format';
 
 /*
  * /api/stations and /api/history: stations looked up by code, not by place.
@@ -108,10 +108,12 @@ export function historyBody(
   // A Queensland station's days are Brisbane days, with its own licence.
   const qld = stationSource(code) === 'qld';
   const today = (qld ? brisbaneDay : sydneyDay)(new Date(snapshot.fetchedAt));
-  const since = addDays(today, -(HISTORY_WINDOW_DAYS - 1));
+  const window = addDays(today, -(HISTORY_WINDOW_DAYS - 1));
+  // Queensland's from the day the owner became a publisher (round 21, A3).
+  const since = qld && window < QLD_PUBLISHED_FROM ? QLD_PUBLISHED_FROM : window;
   const { days, sources } = mergeHistory(parse(files.backfill), parse(files.live), fuel, since);
   const licence = qld
     ? `Daily low, high and last price from our own snapshots. ${qldPriceNotices(Number(today.slice(0, 4))).join(' ')}`
-    : HISTORY_LICENCE;
+    : nswHistoryLicence(sources);
   return { fuelType: fuel, station: toSummary(station), days, sources, licence };
 }

@@ -32,6 +32,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Round 21 (audit 3, A11): known advisories in what ships, the browser
+      # bundle and the functions. Development tools are left out: the one
+      # dismissed alert (minimatch, round 20) is dev-only, and a full audit
+      # would fail every run on it.
+      - name: Audit production dependencies
+        run: pnpm audit --prod
+
       - name: Typecheck
         run: pnpm typecheck
 

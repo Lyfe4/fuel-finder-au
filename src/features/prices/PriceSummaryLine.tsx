@@ -1,3 +1,7 @@
+import { useEffect, useId, useRef, useState } from 'react';
+
+import { Icon } from '@/components/Icon/Icon';
+import { Info } from '@/components/Icon/icons';
 import { VisuallyHidden } from '@/components/VisuallyHidden/VisuallyHidden';
 import { formatPrice } from '@/lib/format';
 
@@ -5,6 +9,10 @@ import { FILL_LITRES, formatDollars, priceSummary } from './fillSaving';
 import styles from './PriceSummaryLine.module.css';
 
 import type { StationPrice } from '../../../shared/api';
+import type { PointerEvent as ReactPointerEvent } from 'react';
+
+/** What "save $3.02 on 50 L" means, behind the ⓘ beside it (round 21). */
+export const SAVING_EXPLANATION = `Filling ${String(FILL_LITRES)} litres (about one tank) at the cheapest station here, instead of at the average price of the stations shown.`;
 
 /**
  * Beside the heading, the docket's total in a few words: "save $3.02 on
@@ -45,6 +53,73 @@ export function PriceSummaryLine({ stations }: { stations: readonly StationPrice
       <VisuallyHidden>
         {`Cheapest ${cheapest}, average ${average} cents a litre.${savingText}`}
       </VisuallyHidden>
+      {saving && (
+        <>
+          {' '}
+          <SavingInfo />
+        </>
+      )}
     </p>
+  );
+}
+
+/**
+ * The ⓘ beside a saving (round 21): a real button with aria-expanded that
+ * shows the explanation, not a hover-only tooltip. A tap or a click toggles
+ * it, as do Enter and Space; a mouse resting on it shows it until the
+ * mouse leaves, and a click then keeps it open. Escape, or a press anywhere
+ * else, closes it. The explanation is laid over the page below the heading
+ * line (absolutely positioned), so opening it moves nothing: no layout shift.
+ */
+function SavingInfo() {
+  const [open, setOpen] = useState<false | 'hover' | 'pinned'>(false);
+  const wrap = useRef<HTMLSpanElement>(null);
+  const id = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    const onPress = (event: PointerEvent) => {
+      if (!wrap.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPress);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPress);
+    };
+  }, [open]);
+
+  const mouse = (event: ReactPointerEvent) => event.pointerType === 'mouse';
+  return (
+    <span
+      ref={wrap}
+      // Leaving the button for its explanation keeps it open; leaving both closes it.
+      onPointerLeave={(event) => {
+        if (mouse(event)) setOpen((was) => (was === 'hover' ? false : was));
+      }}
+    >
+      <button
+        type="button"
+        className={styles.info}
+        aria-expanded={open !== false}
+        aria-controls={id}
+        onPointerEnter={(event) => {
+          if (mouse(event)) setOpen((was) => was || 'hover');
+        }}
+        // A click after the mouse already opened it keeps it open, rather than closing it.
+        onClick={() => {
+          setOpen((was) => (was === 'pinned' ? false : 'pinned'));
+        }}
+      >
+        <Icon icon={Info} />
+        <VisuallyHidden>What this saving means</VisuallyHidden>
+      </button>
+      <span id={id} className={styles.tip} hidden={open === false}>
+        {SAVING_EXPLANATION}
+      </span>
+    </span>
   );
 }

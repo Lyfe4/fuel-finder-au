@@ -11,6 +11,7 @@ import {
 } from './cache';
 import { ApiError, errorResponse, json } from './http';
 import { resolvePlace } from './places';
+import { qldFor, qldIntendedButShut } from './qldGate';
 import { searchNearby, searchNearest, searchPlace, type YesterdayPrices } from './search';
 import { SnapshotUnavailableError, type LoadedSnapshot } from './snapshotSource';
 import {
@@ -26,7 +27,12 @@ import { qldPriceNotices, stationSource } from '../../../shared/api';
 import { addDays } from '../../lib/history/stationHistory';
 import { suggestPlaces } from '../../lib/places/gazetteer';
 import { sydneyMonth } from '../../lib/snapshot/calls';
-import { QLD_STALE_AFTER_MS, STALE_AFTER_MS, type Snapshot } from '../../lib/snapshot/format';
+import {
+  QLD_PUBLISHED_FROM,
+  QLD_STALE_AFTER_MS,
+  STALE_AFTER_MS,
+  type Snapshot,
+} from '../../lib/snapshot/format';
 import { brisbaneDay, sydneyDay } from '../../lib/upstream/time';
 
 import type { QldStatusInput } from './qldStatus';
@@ -168,7 +174,7 @@ async function dispatch(
   if (route === 'places') return suggestions(params, qld);
   if (route === 'status') {
     const now = deps.now();
-    const [served, run, calls, qldRecords] = await Promise.all([
+    const [served, run, calls, qldRecords, qldSwitchedOnButShut] = await Promise.all([
       deps.getSnapshot(qld).then(
         (loaded) => nswPart(loaded),
         () => null,
@@ -199,6 +205,7 @@ async function dispatch(
           reference: null,
         };
       }),
+      qldIntendedButShut(deps, qld, context),
     ]);
     const report = statusReport({
       served,
@@ -206,6 +213,7 @@ async function dispatch(
       calls,
       ...(qldRecords ? { qld: qldRecords } : {}),
       qldPublic: qld,
+      qldSwitchedOnButShut,
       now,
     });
     const deploy = {
@@ -295,27 +303,20 @@ async function yesterdayFor(
 ): Promise<YesterdayPrices | undefined> {
   const nswAt = sources?.find((s) => s.id === 'nsw')?.fetchedAt;
   const qldAt = sources?.find((s) => s.id === 'qld')?.fetchedAt;
+  // Queensland's days before the owner became a publisher are never served (round 21, A3).
+  const qldYesterday = qldAt ? addDays(brisbaneDay(new Date(qldAt)), -1) : null;
   const [nsw, qld] = await Promise.all([
     nswAt || !sources
       ? deps.getDay(addDays(sydneyDay(new Date(nswAt ?? snapshot.fetchedAt)), -1))
       : null,
-    qldAt && deps.getQldDay ? deps.getQldDay(addDays(brisbaneDay(new Date(qldAt)), -1)) : null,
+    qldYesterday && qldYesterday >= QLD_PUBLISHED_FROM && deps.getQldDay
+      ? deps.getQldDay(qldYesterday)
+      : null,
   ]);
   const nswFuel = nsw?.[fuel];
   const qldFuel = qld?.[fuel];
   if (!qldFuel) return nswFuel;
   return { ...nswFuel, ...qldFuel };
-}
-
-/**
- * THE QUEENSLAND GATE, per request: QLD_PUBLIC, the published production
- * deploy, and the owner's kill switch, all three (deps.ts says why each).
- * The switch is read only when the first two hold, so no other deploy, and
- * no deploy built with QLD_PUBLIC off, reads it.
- */
-async function qldFor(deps: HandlerDeps, context: InvocationContext | undefined) {
-  if (!deps.qldEnv || context?.deploy?.published !== true) return false;
-  return (await deps.qldSwitch?.()) ?? false;
 }
 
 export function createHandler(

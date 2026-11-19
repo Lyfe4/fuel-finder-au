@@ -34,6 +34,7 @@
 
 /* The heading and the summary, on one line when they fit. */
 .top {
+  position: relative; /* the saving's explanation is placed against this line */
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;

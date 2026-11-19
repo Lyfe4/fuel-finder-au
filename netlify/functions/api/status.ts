@@ -37,6 +37,10 @@ const lastRunSchema = z.object({
 
 const minutes = (ms: number) => Math.round(ms / 60_000);
 
+/** Round 21: the switch is on, but this deploy cannot serve Queensland. */
+export const QLD_SWITCHED_ON_BUT_SHUT =
+  'Queensland is switched on, but this deploy was built without QLD_PUBLIC=true, so it serves no Queensland prices.';
+
 export function statusReport(input: {
   served: Snapshot | null;
   lastRun: unknown;
@@ -51,6 +55,12 @@ export function statusReport(input: {
   qld?: QldStatusInput;
   /** QLD_PUBLIC: only then do Queensland's problems make the status unhealthy. */
   qldPublic?: boolean;
+  /**
+   * The kill switch is on, but this published deploy was built without
+   * QLD_PUBLIC=true, so it serves no Queensland (round 21). Unhealthy, so
+   * the monitor pages: nobody meant Queensland to be off.
+   */
+  qldSwitchedOnButShut?: boolean;
   now: number;
 }): StatusResponse {
   const { served, now } = input;
@@ -109,6 +119,7 @@ export function statusReport(input: {
   }
 
   if (qldPublic) problems.push(...qld.problems.map((problem) => `QLD: ${problem}`));
+  if (input.qldSwitchedOnButShut) problems.push(QLD_SWITCHED_ON_BUT_SHUT);
 
   return {
     healthy: problems.length === 0,

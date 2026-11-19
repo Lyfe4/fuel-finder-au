@@ -13,6 +13,7 @@ export { default as Back } from '@tabler/icons-react/dist/esm/icons/IconArrowLef
 export { default as Caret } from '@tabler/icons-react/dist/esm/icons/IconChevronDown.mjs';
 export { default as Close } from '@tabler/icons-react/dist/esm/icons/IconX.mjs';
 export { default as Disclosure } from '@tabler/icons-react/dist/esm/icons/IconChevronRight.mjs';
+export { default as Info } from '@tabler/icons-react/dist/esm/icons/IconInfoCircle.mjs';
 export { default as NewTab } from '@tabler/icons-react/dist/esm/icons/IconArrowUpRight.mjs';
 export { default as Search } from '@tabler/icons-react/dist/esm/icons/IconSearch.mjs';
 export { default as Star } from '@tabler/icons-react/dist/esm/icons/IconStar.mjs';

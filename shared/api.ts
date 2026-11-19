@@ -290,7 +290,7 @@ export interface HistoryResponse {
   /** Oldest first. Days with no data have no row. */
   days: HistoryDayRow[];
   sources: HistorySource[];
-  /** Licence of the history data, which is adapted from CC BY-SA open data. */
+  /** Licence of the history data, per source: CC BY-SA for FuelCheck's published days, API.NSW's terms for ours, Queensland's notices for its stations. */
   licence: string;
 }
 

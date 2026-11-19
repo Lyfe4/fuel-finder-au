@@ -3,7 +3,7 @@
 Researched 2026-10-29. The aim is to add Queensland's live prices, and later
 its history, without the two states being able to break each other.
 
-## Status (updated 19 November 2026, round 18)
+## Status (updated 19 November 2026, round 21)
 
 | Phase                                | State                                                                                                                                      |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -17,6 +17,10 @@ The rest of this document is the research and plan as written before the
 build, corrected where the build found otherwise. The reasons for each
 choice made while building are in `docs/decisions.md`, round 15. What
 differs from the plan below:
+
+- **Queensland history is served only from 19 November 2026** (round 21),
+  the day the owner became a publisher; the days recorded from 30 October,
+  as a data consumer, are kept but not served (1.5).
 
 - **The snapshot is 639 kB** (1,773 stations), not the estimated 350 kB;
   the reference data 299 kB, a Brisbane day's history 234 kB.
@@ -361,6 +365,19 @@ fields, limits or the token's form.
   for tests): a picture of Queensland's prices in a public repository would
   be a copy of the data (3.1) that is never current (2.3). Only the static
   copy (masthead, footer, descriptions) names Queensland in them.
+- **2.1 and 2.3, history recorded before publisher status: kept, not
+  served** (round 21, audit 3, A3; the owner's decision, 19 November). The
+  job has written Queensland's daily files since 30 October
+  (`QLD_HISTORY_START`), but until 19 November the owner was only a data
+  consumer, licensed to use the data for its own purposes (2.1), and only
+  a publisher may publish (2.3). Publishing those days now, as a station's
+  history or as the "yesterday" behind a price's move today, would publish
+  data obtained under the consumer licence. So the API serves Queensland
+  history only from **19 November 2026** (`QLD_PUBLISHED_FROM` in
+  `netlify/lib/snapshot/format.ts`), the day publisher status was granted;
+  the earlier days stay stored, unpublished. If the Licensor confirms in
+  writing that they may be shown, moving that date back is a one-line
+  change. Tested in `qldPublic.test.ts`.
 
 ### 1.6 What has to happen before QLD prices go public
 
@@ -474,7 +491,8 @@ passing (`run.test.ts:20-43` pins NSW's exact key list).
 over plan), which can only mean a loop or a retry storm.
 
 Netlify (Legacy Free, 125,000 invocations per site a month): today about
-1,488 snapshot runs, about 2,900 UptimeRobot checks and the visitors' `/api`
+1,488 snapshot runs, about 2,900 UptimeRobot checks (two monitors since round
+10: about 5,900; corrected in round 21) and the visitors' `/api`
 calls. QLD adds 4,464 runs. Comfortable. Blobs writes per QLD run: the
 snapshot (639 kB for 1,773 stations, measured; the estimate here was 350 kB),
 the day file (234 kB), a 200-station fold slice.
@@ -855,8 +873,12 @@ is left for 1c: the masthead, the footer, `index.html`, the manifest,
 **Done in round 20 (19 November 2026), differently.** The owner chose
 `fuel-finder-au` for both, since the site covers three areas and will grow:
 the repository is `Lyfe4/fuel-finder-au` and the site
-`fuel-finder-au.netlify.app`. The owner accepted that the old `netlify.app`
-address stops working (no redirect) rather than adding a custom domain.
+`fuel-finder-au.netlify.app`. No custom domain was added. The old
+`netlify.app` address does not die: a second, redirect-only site holds the
+name `nsw-fuel-finder` and answers every path with a 301 to the same path on
+the new address (corrected in round 21: this paragraph first said the old
+address would stop working, which was the plan before the owner chose to
+hold the name).
 The package name followed. See docs/decisions.md, round 20.
 
 ---

@@ -57,9 +57,31 @@ export function addDays(dayString: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-export const HISTORY_LICENCE =
-  'Daily low, high and last price. Before our own snapshots, adapted from NSW FuelCheck ' +
-  'price history (NSW Fair Trading, data.nsw.gov.au, CC BY-SA); shared under CC BY-SA 4.0.';
+/**
+ * NSW history's licence, per source (round 21, audit 3, A8). FuelCheck's
+ * published price history on data.nsw.gov.au is CC BY-SA, so the days
+ * adapted from it are shared under CC BY-SA 4.0. Our own days come from the
+ * API.NSW Fuel API, whose terms state no open licence (they defer to the
+ * authority administering the information), so those days claim none: they
+ * are credited and used under API.NSW's terms.
+ */
+export function nswHistoryLicence(sources: readonly HistorySource[]): string {
+  const parts = ['Daily low, high and last price.'];
+  for (const source of sources) {
+    if (source.kind === 'fuelcheck-monthly') {
+      parts.push(
+        `${source.from} to ${source.through}: adapted from NSW FuelCheck price history ` +
+          '(NSW Fair Trading, data.nsw.gov.au, CC BY-SA); these days are shared under CC BY-SA 4.0.',
+      );
+    } else {
+      parts.push(
+        `${source.from} to ${source.through}: from our own snapshots of NSW FuelCheck prices, ` +
+          'through the API.NSW Fuel API, used under its terms.',
+      );
+    }
+  }
+  return parts.join(' ');
+}
 
 /**
  * One fuel's history for the chart: the published history, then our own for

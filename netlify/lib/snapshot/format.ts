@@ -43,6 +43,16 @@ export const QLD_STALE_AFTER_MS = 3 * QLD_SNAPSHOT_INTERVAL_MINUTES * 60_000;
  */
 export const QLD_SERVE_MAX_MS = 25 * 60_000;
 
+/**
+ * The first Brisbane day of Queensland history the API serves (round 21,
+ * audit 3, A3): the day the owner became a data publisher. Days before it
+ * (from 30 October, QLD_HISTORY_START in lib/qld/run.ts) were recorded as a
+ * data consumer, whose licence (clause 2.1) is for its own purposes only, so
+ * they stay stored and unpublished: not in a station's history, and not the
+ * "yesterday" behind a price's move today.
+ */
+export const QLD_PUBLISHED_FROM = '2026-11-19';
+
 const priceTuple = z.tuple([z.number(), z.string()]);
 const fuelCodes = FUEL_TYPE_CODES as [FuelTypeCode, ...FuelTypeCode[]];
 
