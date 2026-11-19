@@ -3587,8 +3587,24 @@ that was the name at the time (rulesets read from
 `repos/Lyfe4/nsw-fuel-finder`, the status context, UptimeRobot's address,
 round 18's "names unchanged"); they stay as written.
 
+### The merge that built nothing
+
+The rename's merge (`2fe2868`, 04:25 UTC) was cancelled by our own `ignore`
+rule: "Canceled build due to no content change". After the rename the
+production build had no cache, and Netlify then sets `CACHED_COMMIT_REF` to
+`COMMIT_REF` ("When a build runs without cache, `CACHED_COMMIT_REF` will be
+the same as the `COMMIT_REF`"), so the rule diffed the commit with itself.
+A cancelled build saves no cache, so every later build would have been
+cancelled too. **Fix:** the rule now builds unless `CACHED_COMMIT_REF` is
+set and differs from `COMMIT_REF`, and only then skips a docs-only change.
+Tested against both refs equal, an empty ref, a code change and a docs-only
+change (`2c98204..c74b4d6`, skipped). Production kept serving round 19's
+deploy, under the new name, until the fix merged.
+
 ### Library and platform behaviour this relies on
 
+- **Netlify `ignore`:** exit 0 skips the build; a build hook is never
+  skipped; without a cache `CACHED_COMMIT_REF` equals `COMMIT_REF`.
 - **Netlify `URL`** is the site's primary address at build time; a deploy
   built before the rename keeps the old address in its canonical and
   Open Graph tags, so production is only right after a build that follows
