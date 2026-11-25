@@ -37,9 +37,9 @@
   "dependencies": {
     "@netlify/blobs": "^11.1.9",
     "@tabler/icons-react": "^3.52.0",
-    "@tanstack/react-query": "^5.107.1",
+    "@tanstack/react-query": "^5.108.2",
     "downshift": "^9.5.0",
-    "maplibre-gl": "6.18.0",
+    "maplibre-gl": "6.19.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
